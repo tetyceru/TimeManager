@@ -191,7 +191,47 @@ let holidayData = {};
 const COLORS = ["#ff99bb", "#98fb98", "#87cefa", "#ffcc99", "#e0bbff", "#ffff99", "#ffcccc", "#d3d3d3"];
 let selectedColor = COLORS[0], inputMode = 'normal', selectedDate = "";
 let isDragging = false, dragMode = null, startIdx = null, activeTaskId = null, moveOffset = 0, tempRange = { start: 0, length: 0 }, scrollInterval = null, lastTouchY = 0;
+function saveJob() {
+    const id = document.getElementById('edit-job-id').value;
+    const name = document.getElementById('job-name').value;
+    const start = document.getElementById('job-start').value;
+    const end = document.getElementById('job-end').value;
+    const totalH = parseFloat(document.getElementById('job-total-h').value) || 0;
 
+    if (!name) { alert("案件名を入力してください"); return; }
+
+    if (id) {
+        const idx = appData.longTermJobs.findIndex(j => j.id == id);
+        if (idx !== -1) {
+            appData.longTermJobs[idx].name = name;
+            appData.longTermJobs[idx].start = start;
+            appData.longTermJobs[idx].end = end;
+            appData.longTermJobs[idx].totalH = totalH;
+        }
+    } else {
+        const newJob = {
+            id: Date.now(),
+            name: name,
+            start: start,
+            end: end,
+            totalH: totalH,
+            progress: 0,
+            isCompleted: false
+        };
+        appData.longTermJobs.push(newJob);
+    }
+
+    saveData(); 
+    closeModal('job-modal-overlay');
+
+    // ここが大事！一覧から来たか判定
+    if (isEditingFromList) {
+        openJobList();
+    } else {
+        renderCalendar();
+        updateJobArea();
+    }
+}
 function dtToStr(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function loadData() { const s = localStorage.getItem(STORAGE_KEY); if(s) appData = JSON.parse(s); }
 function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
@@ -367,27 +407,7 @@ function changeMonth(diff) {
 }
 function saveTask() { const name = document.getElementById('task-name').value.trim() || "予定"; if(!appData.tasks[selectedDate]) appData.tasks[selectedDate] = []; appData.tasks[selectedDate].push({ id: Date.now(), name, start: tempRange.start, length: tempRange.length, color: selectedColor }); document.getElementById('task-name').value = ""; saveDataAndRefresh(); closeModal('modal-overlay'); }
 function deleteTask() { appData.tasks[selectedDate] = appData.tasks[selectedDate].filter(x => x.id !== activeTaskId); saveDataAndRefresh(); closeModal('edit-modal-overlay'); }
-function saveJob() { 
-    const id = document.getElementById('edit-job-id').value; 
-    const jobData = { 
-        name: document.getElementById('job-name').value, 
-        start: document.getElementById('job-start').value, 
-        end: document.getElementById('job-end').value, 
-        totalH: parseFloat(document.getElementById('job-total-h').value)||0 
-    }; 
-    if(id) Object.assign(appData.longTermJobs.find(x=>x.id==id), jobData); 
-    else appData.longTermJobs.push({ ...jobData, id:Date.now(), progress:0, isCompleted:false, isDeleted:false }); 
-    
-    saveData(); 
-    closeModal('job-modal-overlay'); // 編集画面を閉じる
 
-    // ★追加：一覧から来ていたら一覧に戻し、そうでなければ通常リフレッシュ
-    if (isEditingFromList) {
-        openJobList();
-    } else {
-        saveDataAndRefresh(); 
-    }
-}
 function saveDaySleep() { appData.singleSleeps[selectedDate] = { start: timeToIndex(document.getElementById('sleep-start').value), end: timeToIndex(document.getElementById('sleep-end').value) }; saveDataAndRefresh(); closeModal('sleep-modal-overlay'); }
 function saveDefSleep() { appData.defSleep = { start: timeToIndex(document.getElementById('sleep-start').value), end: timeToIndex(document.getElementById('sleep-end').value) }; saveData(); alert("基本設定を保存しました"); }
 function saveDayShift() { appData.singleShifts[selectedDate] = { start: timeToIndex(document.getElementById('set-shift-start').value), end: timeToIndex(document.getElementById('set-shift-end').value) }; saveDataAndRefresh(); closeModal('shift-modal-overlay'); }

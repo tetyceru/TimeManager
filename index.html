@@ -163,13 +163,14 @@
         <h3>月間リセット</h3>
         <p id="reset-confirm-msg" style="font-size:14px; color:#666;"></p>
         <button onclick="executeMonthlyReset()" class="save-btn" style="background:var(--danger);">本当にすべて消去する</button>
-        <button type="button" onclick="closeModal('job-modal-overlay'); if(isEditingFromList) openJobList();" class="save-btn" style="background:#666;">キャンセル</button>
+        <button type="button" onclick="closeModal('reset-modal-overlay')" class="save-btn" style="background:#666;">キャンセル</button>
     </div>
 </div>
 
 <div id="jump-modal-overlay" class="modal-overlay"><div class="modal"><h3>年月ジャンプ</h3><div style="display:flex; gap:10px;"><select id="jump-year"></select><select id="jump-month"></select></div><button onclick="jumpToMonth()" class="save-btn">ジャンプ</button><button onclick="closeModal('jump-modal-overlay')" style="width:100%; border:none; background:none; margin-top:10px;">閉じる</button></div></div>
 <div id="sleep-modal-overlay" class="modal-overlay"><div class="modal"><h3>睡眠設定</h3><div style="display:flex; gap:10px;"><div><label>開始</label><input type="time" id="sleep-start"></div><div><label>終了</label><input type="time" id="sleep-end"></div></div><div id="batch-sleep-area"><button onclick="saveDefSleep()" class="save-btn">基本設定として保存</button></div><button id="save-day-sleep-btn" onclick="saveDaySleep()" class="save-btn hidden">この日のみ保存</button><button onclick="closeModal('sleep-modal-overlay')" style="width:100%; border:none; background:none; margin-top:10px;">キャンセル</button></div></div>
-<div id="job-modal-overlay" class="modal-overlay"><div class="modal"><h3>案件登録</h3><input type="hidden" id="edit-job-id"><input type="text" id="job-name" placeholder="案件名" autocomplete="off"><div style="display:flex; gap:5px;"><input type="date" id="job-start"><input type="date" id="job-end"></div><input type="number" id="job-total-h" placeholder="想定合計時間(h)"><button onclick="saveJob()" class="save-btn">保存</button><button onclick="closeModal('job-modal-overlay')" style="width:100%; border:none; background:none; margin-top:10px;">キャンセル</button></div></div>
+<div id="job-modal-overlay" class="modal-overlay"><div class="modal"><h3>案件登録</h3><input type="hidden" id="edit-job-id"><input type="text" id="job-name" placeholder="案件名" autocomplete="off"><div style="display:flex; gap:5px;"><input type="date" id="job-start"><input type="date" id="job-end"></div><input type="number" id="job-total-h" placeholder="想定合計時間(h)"><button onclick="saveJob()" class="save-btn">保存</button>
+<button type="button" onclick="closeModal('job-modal-overlay'); if(isEditingFromList) openJobList();" style="width:100%; border:none; background:none; margin-top:10px;">キャンセル</button></div></div>
 <div id="modal-overlay" class="modal-overlay"><div class="modal"><h3>予定の追加</h3><input type="text" id="task-name" placeholder="予定の名前" autocomplete="off"><div id="color-picker-area" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:10px 0;"></div><button onclick="saveTask()" class="save-btn">保存</button><button onclick="closeModal('modal-overlay')" style="width:100%; border:none; background:none; margin-top:10px;">キャンセル</button></div></div>
 <div id="edit-modal-overlay" class="modal-overlay"><div class="modal"><h3>予定の削除</h3><p id="edit-info" style="text-align:center; font-weight:bold;"></p><button id="final-delete-btn" class="save-btn" style="background:var(--danger);">削除</button><button onclick="closeModal('edit-modal-overlay')" style="width:100%; border:none; background:none; margin-top:10px;">戻る</button></div></div>
 <div id="shift-modal-overlay" class="modal-overlay"><div class="modal"><h3>シフト設定</h3><div style="display:flex; gap:5px;"><div><label>開始</label><input type="time" id="set-shift-start"></div><div><label>終了</label><input type="time" id="set-shift-end"></div></div><div id="batch-shift-area"><div style="margin-top:10px; padding-top:10px; border-top:1px solid #eee;"><label style="font-size:12px; font-weight:bold;">曜日一括反映</label><div id="weekday-checks" style="display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-top:5px;"><label><input type="checkbox" value="1">月</label><label><input type="checkbox" value="2">火</label><label><input type="checkbox" value="3">水</label><label><input type="checkbox" value="4">木</label><label><input type="checkbox" value="5">金</label><label><input type="checkbox" value="6">土</label><label><input type="checkbox" value="0">日</label></div><button onclick="applyBatchShift()" class="save-btn" style="background:var(--shift);">一括反映</button></div><button onclick="saveDefShift()" class="save-btn">基本設定保存</button></div><button id="save-day-shift-btn" onclick="saveDayShift()" class="save-btn hidden">この日のみ保存</button><button onclick="closeModal('shift-modal-overlay')" style="width:100%; border:none; background:none; margin-top:10px;">閉じる</button></div></div>
@@ -270,10 +271,8 @@ function init() {
         } else if (diff < -100) {
             slideDay(-1);
         }
-    }, {passive: true});
-
-    // × fetechHolidays(); 
-    fetchHolidays();  // ← 正しくはこちら（eを一個消します）
+    }, {passive: true});   
+    fetchHolidays();
     
     document.getElementById('final-delete-btn').onclick = deleteTask;
     document.getElementById('month-reset-btn').onclick = (e) => {
@@ -438,54 +437,40 @@ function openJobList() {
     const container = document.getElementById('all-job-list-container');
     container.innerHTML = "";
     
-    appData.longTermJobs.forEach(job => {
+    // 削除されていない案件を上に、削除済みを下に並べる
+    const sortedJobs = [...appData.longTermJobs].sort((a, b) => (a.isDeleted === b.isDeleted) ? 0 : a.isDeleted ? 1 : -1);
+
+    sortedJobs.forEach(job => {
         const div = document.createElement('div');
-        div.className = 'job-card';
+        div.className = `job-card ${job.isCompleted ? 'completed' : ''} ${job.isDeleted ? 'deleted' : ''}`;
         div.style.marginBottom = "10px";
-        
-        // HTML構造を作成
+        div.style.padding = "10px";
+        div.style.border = "1px solid #ddd";
+        div.style.borderRadius = "8px";
+
         div.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>${job.name} ${job.isCompleted ? '✅' : ''}</strong>
-                <div style="display:flex; align-items:center;">
-                    <button class="edit-btn-trigger" style="border:none; background:none; cursor:pointer; font-size:20px; padding:10px;">✏️</button>
-                    <button class="delete-btn-trigger" style="border:none; background:none; color:red; font-size:26px; cursor:pointer; min-width:48px; min-height:48px; display:inline-flex; align-items:center; justify-content:center; -webkit-appearance:none;">×</button>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="font-weight:bold; font-size:14px;">${job.name}</div>
+                <div>
+                    <button class="mini-btn" onclick="openJobModal(${job.id})" style="padding:8px 12px; margin-right:5px;">✏️ 編集</button>
+                    <button class="mini-btn" onclick="hardDeleteJob(${job.id})" style="padding:8px 12px; background:#ffebee; color:#c62828; border-color:#ef9a9a;">×</button>
                 </div>
             </div>
-            <div style="font-size:11px; color:#666;">期間: ${job.start} ～ ${job.end}</div>
-            <div style="font-size:11px; color:#666;">想定: ${job.totalH}時間 / 進捗: ${job.progress}%</div>
+            <div style="font-size:11px; color:#666; margin-top:5px;">期間: ${job.start} ～ ${job.end}</div>
+            <div style="font-size:11px; color:#666;">想定: ${job.totalH}h / 進捗: ${job.progress}%</div>
         `;
-
-        // 【ここが重要！】ボタンに対して、直接イベントを「強制注入」します
-        const editBtn = div.querySelector('.edit-btn-trigger');
-        const delBtn = div.querySelector('.delete-btn-trigger');
-
-        // 編集ボタンへの注入
-        editBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            openJobModal(job.id);
-        }, {passive: false});
-
-        // 削除ボタンへの注入（触れた瞬間に実行）
-        delBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // 他の動きをすべて封じる
-            e.stopPropagation(); // 親要素（カレンダーなど）への伝達を止める
-            hardDeleteJob(job.id);
-        }, {passive: false});
-
         container.appendChild(div);
     });
+    
     document.getElementById('job-list-modal-overlay').style.display = 'flex';
 }
-// 案件を履歴からも完全に消去する
+
+// 履歴からも完全に消すための関数（もしなければ追加してください）
 function hardDeleteJob(id) {
-    if(confirm("この案件をデータから完全に削除しますか？（履歴からも消えます）")) {
+    if(confirm("この案件を履歴から完全に削除しますか？")) {
         appData.longTermJobs = appData.longTermJobs.filter(j => j.id !== id);
         saveData();
-        openJobList(); // 一覧を更新
-        renderCalendar(); // カレンダーを更新
-        updateJobArea(); // 1日画面の表示を更新
+        openJobList(); // 一覧を再描画
     }
 }
 

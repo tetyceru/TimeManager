@@ -163,7 +163,7 @@
         <h3>月間リセット</h3>
         <p id="reset-confirm-msg" style="font-size:14px; color:#666;"></p>
         <button onclick="executeMonthlyReset()" class="save-btn" style="background:var(--danger);">本当にすべて消去する</button>
-        <button onclick="closeModal('reset-modal-overlay')" style="width:100%; border:none; background:none; margin-top:15px;">キャンセル</button>
+        <button type="button" onclick="closeModal('job-modal-overlay'); if(isEditingFromList) openJobList();" class="save-btn" style="background:#666;">キャンセル</button>
     </div>
 </div>
 
@@ -183,6 +183,7 @@
 
 
 <script>
+let isEditingFromList = false; // 案件一覧から開いたかどうかを覚える変数
 let currentViewDate = new Date(); currentViewDate.setDate(1);
 const STORAGE_KEY = 'TimeManager_V22';
 let appData = { tasks: {}, longTermJobs: [], singleShifts: {}, singleSleeps: {}, defShift: { start: 36, end: 68 }, defSleep: { start: 0, end: 26 } };
@@ -325,11 +326,15 @@ function completeJob(id) { const j = appData.longTermJobs.find(x=>x.id===id); j.
 function deleteJob(id) { const j = appData.longTermJobs.find(x=>x.id===id); j.isDeleted = !j.isDeleted; j.deletedAt = j.isDeleted ? selectedDate : null; saveDataAndRefresh(); }
 function openSleepModal() { const s = (selectedDate && appData.singleSleeps[selectedDate]) ? appData.singleSleeps[selectedDate] : appData.defSleep; document.getElementById('sleep-start').value = indexToTime(s.start); document.getElementById('sleep-end').value = indexToTime(s.end); document.getElementById('batch-sleep-area').className = selectedDate ? 'hidden' : ''; document.getElementById('save-day-sleep-btn').className = selectedDate ? 'save-btn' : 'hidden'; document.getElementById('sleep-modal-overlay').style.display='flex'; }
 function openShiftModal() { const s = (selectedDate && appData.singleShifts[selectedDate]) ? appData.singleShifts[selectedDate] : appData.defShift; document.getElementById('set-shift-start').value = indexToTime(s.start); document.getElementById('set-shift-end').value = indexToTime(s.end); document.getElementById('batch-shift-area').className = selectedDate ? 'hidden' : ''; document.getElementById('save-day-shift-btn').className = selectedDate ? 'save-btn' : 'hidden'; document.getElementById('shift-modal-overlay').style.display='flex'; }
-function openJobModal(id = null) { 
-    closeModal('job-list-modal-overlay');
+function openJobModal(id = null) {
+    // もし案件一覧モーダルが表示されていたら、フラグを立てる
+    const listModal = document.getElementById('job-list-modal-overlay');
+    isEditingFromList = (listModal.style.display === 'flex');
+
+    closeModal('job-list-modal-overlay'); // 一覧を閉じる
+
     if (id) {
-        // IDがある場合は、そのIDの案件を探してフォームに入れる
-        const j = appData.longTermJobs.find(x => x.id == id); // === ではなく == の方が安全です
+        const j = appData.longTermJobs.find(x => x.id == id);
         if(j) {
             document.getElementById('edit-job-id').value = id;
             document.getElementById('job-name').value = j.name;
@@ -338,14 +343,13 @@ function openJobModal(id = null) {
             document.getElementById('job-total-h').value = j.totalH;
         }
     } else {
-        // IDがない場合は新規登録なので空にする
         document.getElementById('edit-job-id').value = "";
         document.getElementById('job-name').value = "";
         document.getElementById('job-start').value = selectedDate || dtToStr(new Date());
         document.getElementById('job-end').value = selectedDate || dtToStr(new Date());
         document.getElementById('job-total-h').value = "";
-    } 
-    document.getElementById('job-modal-overlay').style.display = 'flex'; 
+    }
+    document.getElementById('job-modal-overlay').style.display = 'flex';
 }
 function openJumpModal() { const ys = document.getElementById('jump-year'), ms = document.getElementById('jump-month'); ys.innerHTML = ""; ms.innerHTML = ""; const curY = new Date().getFullYear(); for(let y=curY-1; y<=curY+3; y++) ys.innerHTML += `<option value="${y}" ${y==currentViewDate.getFullYear()?'selected':''}>${y}年</option>`; for(let m=0; m<12; m++) ms.innerHTML += `<option value="${m}" ${m==currentViewDate.getMonth()?'selected':''}>${m+1}月</option>`; document.getElementById('jump-modal-overlay').style.display='flex'; }
 function jumpToMonth() { currentViewDate.setFullYear(document.getElementById('jump-year').value); currentViewDate.setMonth(document.getElementById('jump-month').value); renderCalendar(); closeModal('jump-modal-overlay'); }
@@ -362,7 +366,52 @@ function changeMonth(diff) {
 }
 function saveTask() { const name = document.getElementById('task-name').value.trim() || "予定"; if(!appData.tasks[selectedDate]) appData.tasks[selectedDate] = []; appData.tasks[selectedDate].push({ id: Date.now(), name, start: tempRange.start, length: tempRange.length, color: selectedColor }); document.getElementById('task-name').value = ""; saveDataAndRefresh(); closeModal('modal-overlay'); }
 function deleteTask() { appData.tasks[selectedDate] = appData.tasks[selectedDate].filter(x => x.id !== activeTaskId); saveDataAndRefresh(); closeModal('edit-modal-overlay'); }
-function saveJob() { const id = document.getElementById('edit-job-id').value; const jobData = { name: document.getElementById('job-name').value, start: document.getElementById('job-start').value, end: document.getElementById('job-end').value, totalH: parseFloat(document.getElementById('job-total-h').value)||0 }; if(id) Object.assign(appData.longTermJobs.find(x=>x.id==id), jobData); else appData.longTermJobs.push({ ...jobData, id:Date.now(), progress:0, isCompleted:false, isDeleted:false }); saveDataAndRefresh(); closeModal('job-modal-overlay'); }
+function saveJob() {
+    const id = document.getElementById('edit-job-id').value;
+    const name = document.getElementById('job-name').value;
+    const start = document.getElementById('job-start').value;
+    const end = document.getElementById('job-end').value;
+    const totalH = parseFloat(document.getElementById('job-total-h').value) || 0;
+
+    if (!name) { alert("案件名を入力してください"); return; }
+
+    if (id) {
+        // 編集
+        const idx = appData.longTermJobs.findIndex(j => j.id == id);
+        if (idx !== -1) {
+            appData.longTermJobs[idx].name = name;
+            appData.longTermJobs[idx].start = start;
+            appData.longTermJobs[idx].end = end;
+            appData.longTermJobs[idx].totalH = totalH;
+        }
+    } else {
+        // 新規登録
+        const newJob = {
+            id: Date.now(),
+            name: name,
+            start: start,
+            end: end,
+            totalH: totalH,
+            progress: 0,
+            isCompleted: false
+        };
+        appData.longTermJobs.push(newJob);
+    }
+
+    saveData(); // データを保存
+    closeModal('job-modal-overlay'); // 編集画面を閉じる
+
+    // ★★★ ここからが修正ポイント ★★★
+    if (isEditingFromList) {
+        // 一覧から開いていた場合は、一覧画面を再表示する
+        openJobList();
+    } else {
+        // カレンダーから直接開いていた場合は、通常通りカレンダーを更新
+        renderCalendar();
+        updateJobArea();
+    }
+    // ★★★ ここまで ★★★
+}
 function saveDaySleep() { appData.singleSleeps[selectedDate] = { start: timeToIndex(document.getElementById('sleep-start').value), end: timeToIndex(document.getElementById('sleep-end').value) }; saveDataAndRefresh(); closeModal('sleep-modal-overlay'); }
 function saveDefSleep() { appData.defSleep = { start: timeToIndex(document.getElementById('sleep-start').value), end: timeToIndex(document.getElementById('sleep-end').value) }; saveData(); alert("基本設定を保存しました"); }
 function saveDayShift() { appData.singleShifts[selectedDate] = { start: timeToIndex(document.getElementById('set-shift-start').value), end: timeToIndex(document.getElementById('set-shift-end').value) }; saveDataAndRefresh(); closeModal('shift-modal-overlay'); }

@@ -183,9 +183,10 @@
 
 
 <script>
+let isEditingFromList = false; // ★この行を追加（目印になります）
 let currentViewDate = new Date(); currentViewDate.setDate(1);
 const STORAGE_KEY = 'TimeManager_V22';
-let isEditingFromList = false; // ★この行を追加（目印になります）
+
 let appData = { tasks: {}, longTermJobs: [], singleShifts: {}, singleSleeps: {}, defShift: { start: 36, end: 68 }, defSleep: { start: 0, end: 26 } };
 let holidayData = {};
 const COLORS = ["#ff99bb", "#98fb98", "#87cefa", "#ffcc99", "#e0bbff", "#ffff99", "#ffcccc", "#d3d3d3"];

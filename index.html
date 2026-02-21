@@ -328,8 +328,7 @@ function openSleepModal() { const s = (selectedDate && appData.singleSleeps[sele
 function openShiftModal() { const s = (selectedDate && appData.singleShifts[selectedDate]) ? appData.singleShifts[selectedDate] : appData.defShift; document.getElementById('set-shift-start').value = indexToTime(s.start); document.getElementById('set-shift-end').value = indexToTime(s.end); document.getElementById('batch-shift-area').className = selectedDate ? 'hidden' : ''; document.getElementById('save-day-shift-btn').className = selectedDate ? 'save-btn' : 'hidden'; document.getElementById('shift-modal-overlay').style.display='flex'; }
 function openJobModal(id = null) {
     // もし案件一覧モーダルが表示されていたら、フラグを立てる
-    const listModal = document.getElementById('job-list-modal-overlay');
-    isEditingFromList = (listModal.style.display === 'flex');
+    isEditingFromList = (document.getElementById('job-list-modal-overlay').style.display === 'flex');
 
     closeModal('job-list-modal-overlay'); // 一覧を閉じる
 
@@ -496,3 +495,4 @@ init();
 </script>
 </body>
 </html>
+

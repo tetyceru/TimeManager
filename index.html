@@ -25,10 +25,38 @@
         .nav-btn { background: #eee; border: none; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
         .reset-btn { background: #fff1f1; color: var(--danger); border: 1px solid #ffcccc; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 4px; touch-action: manipulation; }
 
-        .mode-switch { background: #f0f0f0; padding: 4px; border-radius: 20px; display: inline-flex; margin-bottom: 10px; }
-        .mode-btn { border: none; padding: 8px 15px; border-radius: 15px; cursor: pointer; font-size: 11px; }
-        .mode-btn.active { background: var(--primary); color: white; }
-        .mode-btn.shift-active { background: var(--shift) !important; color: white; }
+.mode-switch {
+    background: #f0f0f0;
+    padding: 3px;         /* 4pxから3pxへ（少しスリムに） */
+    border-radius: 20px;
+    display: flex;
+    width: 80%;           /* 100%から80%に（左右に余裕を持たせる） */
+    margin: 0 auto 15px;  /* autoで中央寄せ、下に15pxの余白 */
+    box-sizing: border-box;
+}
+
+.mode-btn {
+    flex: 1;
+    border: none;
+    padding: 6px 0;      /* 10pxから6pxへ（高さを抑える） */
+    border-radius: 18px;
+    cursor: pointer;
+    font-size: 12px;     /* 13pxから12pxへ（少し小さく） */
+    font-weight: bold;
+    transition: all 0.2s;
+    background: transparent;
+    color: #666;
+}
+
+/* アクティブ時のスタイルはそのまま */
+.mode-btn.active {
+    background: var(--primary);
+    color: white;
+}
+.mode-btn.shift-active {
+    background: var(--shift) !important;
+    color: white;
+}
 
         /* Calendar */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -131,33 +159,33 @@
         input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
         .save-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; }
 
+/* <style> タグの中に貼り付けてください */
 .side-nav {
+　　display: none; /* ★これを追加：初期状態は隠す */
     position: fixed;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.4); /* 半透明の黒 */
+    background: rgba(0, 0, 0, 0.4); 
     color: white;
     padding: 15px 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 5000; /* タイムラインより上、モーダルより下 */
+    z-index: 5000;
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 }
 
-/* 左端（前日） */
 .prev-day {
     left: 0;
-    border-radius: 0 10px 10px 0;
+    border-radius: 0 10px 10px 0; /* 右側だけ丸く */
 }
 
-/* 右端（翌日） */
 .next-day {
     right: 0;
-    border-radius: 10px 0 0 10px;
+    border-radius: 10px 0 0 10px; /* 左側だけ丸く */
 }
 
 .nav-arrow {
@@ -170,22 +198,54 @@
     margin-top: 2px;
 }
 
-/* タップした時に少し濃くする演出 */
 .side-nav:active {
     background: rgba(0, 0, 0, 0.7);
+}
+
+
+/* 曜日のヘッダー部分 */
+.calendar-weekday-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* 7列に分ける */
+    gap: 4px;
+    margin-bottom: 4px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    color: #666;
+}
+
+/* 土日の色を変えるとおしゃれです（任意） */
+.calendar-weekday-header div:nth-child(1) { color: var(--holiday); } /* 日曜日 */
+.calendar-weekday-header div:nth-child(7) { color: #5c67f2; }         /* 土曜日 */
+
+/* 他の月の日付を薄くする */
+.other-month {
+    background: #fafafa !important; /* 背景を少しグレーに */
+    color: #ccc !important;         /* 文字を薄く */
+    cursor: default !important;     /* クリックできない感を出すす */
+    pointer-events: none;           /* 実際にクリックを無効化 */
+}
+
+/* カレンダーの1列目（日曜日）の数字を赤く */
+.calendar-grid div:nth-child(7n+1) .day-num {
+    color: var(--holiday);
+}
+
+/* カレンダーの7列目（土曜日）の数字を青く */
+.calendar-grid div:nth-child(7n) .day-num {
+    color: #5c67f2;
+}
+
+/* 他の月の日付は、土日でも薄い色のままにする */
+.other-month .day-num {
+    color: #ccc !important;
 }
 
     </style>
 </head>
 <body>
-<div class="side-nav prev-day" onclick="slideDay(-1)">
-    <span class="nav-arrow">＜</span>
-    <span class="nav-text">前日</span>
-</div>
 
-<div class="side-nav next-day" onclick="slideDay(1)">
-    <span class="nav-text">翌日</span>
-    <span class="nav-arrow">＞</span>
 </div>
 <div id="app-notification" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:90%; max-width:400px; background:#333; color:#fff; padding:15px; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.3); z-index:10000; cursor:pointer;">
     <div id="notification-title" style="font-weight:bold; font-size:16px; margin-bottom:5px;"></div>
@@ -217,23 +277,31 @@
     </div>
 
     <div id="calendar-screen">
-        <div class="calendar-grid" id="calendar-grid"></div>
+    <div class="calendar-weekday-header">
+        <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+    </div>
+    
+    <div class="calendar-grid" id="calendar-grid"></div>
+</div>
+<div id="day-screen" class="hidden">
+    <div style="display:flex; justify-content:center; align-items:center; background:#f0f2ff; padding:10px; border-radius:8px; margin-bottom:10px;">
+        <div style="text-align:center;">
+            <h2 id="current-day-label" style="margin:0; font-size:16px;"></h2>
+            <div id="freeTime" style="font-size:11px; font-weight:bold;"></div>
+        </div>
     </div>
 
-    <div id="day-screen" class="hidden">
-        <div style="display:flex; justify-content:space-between; align-items:center; background:#f0f2ff; padding:10px; border-radius:8px; margin-bottom:10px;">
-            <button class="nav-btn" onclick="slideDay(-1)">＜</button>
-            <div style="text-align:center;">
-                <h2 id="current-day-label" style="margin:0; font-size:16px;"></h2>
-                <div id="freeTime" style="font-size:11px; font-weight:bold;"></div>
-            </div>
-            <button class="nav-btn" onclick="slideDay(1)">＞</button>
-        </div>
-        <div id="day-jobs-area"></div>
-        <div id="timeline-container">
-            <div id="timeline"></div>
-            <div id="drag-guide" class="drag-guide hidden" style="position:absolute; left:0; right:0; background:rgba(92,103,242,0.3); border:2px dashed var(--primary); z-index:1000; pointer-events:none;"></div>
-        </div>
+    <div class="side-nav prev-day" id="side-prev" onclick="slideDay(-1)">
+        <span class="nav-arrow">＜</span><span class="nav-text">前日</span>
+    </div>
+    <div class="side-nav next-day" id="side-next" onclick="slideDay(1)">
+        <span class="nav-arrow">＞</span><span class="nav-text">翌日</span>
+    </div>
+
+    <div id="day-jobs-area"></div>
+    <div id="timeline-container">
+        <div id="timeline"></div>
+        <div id="drag-guide" class="drag-guide hidden" style="position:absolute; left:0; right:0; background:rgba(92,103,242,0.3); border:2px dashed var(--primary); z-index:1000; pointer-events:none;"></div>
     </div>
 </div>
 
@@ -615,29 +683,90 @@ function executeMonthlyReset() {
 }
 
 function renderCalendar() {
-    const grid = document.getElementById('calendar-grid'); grid.innerHTML = "";
-    const y = currentViewDate.getFullYear(), m = currentViewDate.getMonth();
-    const holidays = holidayData;
-    document.getElementById('view-title').textContent = `${y}年 ${m + 1}月`;
-    const firstDay = new Date(y, m, 1).getDay(), lastDate = new Date(y, m + 1, 0).getDate();
-    for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
-    for (let i = 1; i <= lastDate; i++) {
-        const dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-        const day = document.createElement('div'); day.className = 'calendar-day';
-        if(inputMode === 'shift') day.classList.add('shift-mode-active');
-        if(dStr === dtToStr(new Date())) day.classList.add('is-today');
-        let html = "";
-        if(holidays[dStr]) { day.classList.add('is-holiday'); html += `<div class="holiday-name">${holidays[dStr]}</div>`; }
-        html += `<div class="day-num">${i}</div>`;
-        let displayItems = [];
-        if (appData.singleShifts[dStr]) displayItems.push(`<div class="job-band shift-band">勤:${indexToTime(appData.singleShifts[dStr].start)}</div>`);
-        (appData.longTermJobs || []).filter(j => isJobVisibleOnDate(j, dStr)).forEach(j => displayItems.push(`<div class="job-band ${j.isDeleted?'deleted':''}">${j.name}</div>`));
-        displayItems.slice(0, 2).forEach(item => html += item);
-        if(displayItems.length > 2) html += `<div style="font-size:8px;color:#888;text-align:right">他${displayItems.length-2}件</div>`;
-        day.innerHTML = html;
-        day.onclick = () => { if(inputMode==='shift'){ if(appData.singleShifts[dStr]) delete appData.singleShifts[dStr]; else appData.singleShifts[dStr]={...appData.defShift}; saveData(); renderCalendar(); } else showDay(dStr); };
-        grid.appendChild(day);
-    }
+    const grid = document.getElementById('calendar-grid'); 
+    grid.innerHTML = "";
+
+    const y = currentViewDate.getFullYear();
+    const m = currentViewDate.getMonth();
+    const holidays = holidayData;
+
+    // タイトル更新
+    document.getElementById('view-title').textContent = `${y}年 ${m + 1}月`;
+
+    // 1日の曜日(0:日〜6:土)と、その月の最終日を取得
+    const firstDay = new Date(y, m, 1).getDay();
+    const lastDate = new Date(y, m + 1, 0).getDate();
+
+    // ★ 前月の最終日を取得
+    const prevMonthLastDate = new Date(y, m, 0).getDate();
+
+    // 1. 前月の末尾を埋める
+    for (let i = firstDay - 1; i >= 0; i--) {
+        const date = prevMonthLastDate - i;
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'calendar-day other-month'; // 専用のクラスを付与
+        emptyDiv.innerHTML = `<div class="day-num">${date}</div>`;
+        grid.appendChild(emptyDiv);
+    }
+
+    // 2. 日付を1日から末日まで描画
+    for (let i = 1; i <= lastDate; i++) {
+        const dStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        const day = document.createElement('div'); 
+        day.className = 'calendar-day';
+
+        // 各種状態のクラス付け
+        if (inputMode === 'shift') day.classList.add('shift-mode-active');
+        if (dStr === dtToStr(new Date())) day.classList.add('is-today');
+
+        let html = "";
+        // 祝日判定
+        if (holidays[dStr]) { 
+            day.classList.add('is-holiday'); 
+            html += `<div class="holiday-name">${holidays[dStr]}</div>`; 
+        }
+        html += `<div class="day-num">${i}</div>`;
+
+        // 表示アイテム（シフトと案件）の作成
+        let displayItems = [];
+        if (appData.singleShifts[dStr]) {
+            displayItems.push(`<div class="job-band shift-band">勤:${indexToTime(appData.singleShifts[dStr].start)}</div>`);
+        }
+        (appData.longTermJobs || []).filter(j => isJobVisibleOnDate(j, dStr)).forEach(j => {
+            displayItems.push(`<div class="job-band ${j.isDeleted ? 'deleted' : ''}">${j.name}</div>`);
+        });
+
+        // 2件まで表示、それ以上は「他x件」
+        displayItems.slice(0, 2).forEach(item => html += item);
+        if (displayItems.length > 2) {
+            html += `<div style="font-size:8px;color:#888;text-align:right">他${displayItems.length - 2}件</div>`;
+        }
+
+        day.innerHTML = html;
+
+        // クリックイベント
+        day.onclick = () => { 
+            if (inputMode === 'shift') { 
+                if (appData.singleShifts[dStr]) delete appData.singleShifts[dStr]; 
+                else appData.singleShifts[dStr] = { ...appData.defShift }; 
+                saveData(); 
+                renderCalendar(); 
+            } else {
+                showDay(dStr); 
+            }
+        };
+        grid.appendChild(day);
+    }
+// 3. 翌月の始まりを埋める（その週の土曜日まで）
+    const lastDayOfOfMonth = new Date(y, m + 1, 0).getDay(); // 今月末日の曜日 (0:日〜6:土)
+    const nextCells = 6 - lastDayOfOfMonth; // 土曜日(6)までの残りのマス数
+
+    for (let i = 1; i <= nextCells; i++) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'calendar-day other-month';
+        emptyDiv.innerHTML = `<div class="day-num">${i}</div>`;
+        grid.appendChild(emptyDiv);
+    }
 }
 
 // --- 1. 予定を動かし始める関数 (clientY版) ---
@@ -739,7 +868,7 @@ function renderTimeline() {
             const txt = document.createElement("span");
             txt.style.cssText = "flex:1; overflow:hidden; white-space:nowrap; pointer-events:none; display:flex; flex-direction:column; line-height:1.1;";
             const totalMin = t.length * 15;
-            const timeStr = totalMin >= 60 ? `${Math.floor(totalMin/60)}h${totalMin%60}m` : `${totalMin}m`;
+            const timeStr = totalMin >= 60 ? `${Math.floor(totalMin/60)}時間${totalMin%60}分` : `${totalMin}分`;
             txt.innerHTML = `<b style="font-size:10px;">${t.name}</b><span style="font-size:8px; opacity:0.9;">${timeStr}</span>`;
             el.appendChild(txt);
 
@@ -961,7 +1090,7 @@ function updateGuide(min, max) {
     const totalMinutes = (max - min + 1) * 15;
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
-    guide.textContent = h > 0 ? `${h}時${m}分` : `${m}分`;
+    guide.textContent = h > 0 ? `${h}時間${m}分` : `${m}分`;
 }
 
 function updateJobArea() { const area = document.getElementById('day-jobs-area'); area.innerHTML = ""; (appData.longTermJobs || []).filter(j => isJobVisibleOnDate(j, selectedDate)).forEach(j => { const div = document.createElement('div'); div.className = `job-card ${j.isCompleted ? 'completed' : ''} ${j.isDeleted ? 'deleted' : ''}`; div.innerHTML = `<div style="display:flex; justify-content:space-between;"><b>${j.name}</b> <small>計:${j.totalH}h</small></div><div class="job-card-row">進捗: <input type="number" class="progress-input" value="${j.progress}" onchange="updateProgress(${j.id}, this.value)" ${j.isDeleted || j.isCompleted ? 'disabled' : ''}> %<div><button class="mini-btn" onclick="openJobModal(${j.id})">編集</button><button class="mini-btn" onclick="deleteJob(${j.id})">${j.isDeleted?'復元':'削除'}</button><button class="mini-btn" onclick="completeJob(${j.id})">${j.isCompleted?'戻す':'完了'}</button></div></div>`; area.appendChild(div); }); }
@@ -1166,7 +1295,7 @@ let jobH = 0;
             jobH += (j.totalH * (1 - j.progress/100)) / Math.max(1, totalDays);
         }); 
 
-const freeMin = (96 - busyIdx) * 15 - (jobH * 60); document.getElementById('freeTime').innerHTML = `自由時間: ${Math.floor(Math.max(0, freeMin)/60)}h ${Math.floor(Math.max(0, freeMin)%60)}m<br><small>案件ノルマ: 約 ${jobH.toFixed(1)}h/日</small>`; }
+const freeMin = (96 - busyIdx) * 15 - (jobH * 60); document.getElementById('freeTime').innerHTML = `自由時間: ${Math.floor(Math.max(0, freeMin)/60)}時間 ${Math.floor(Math.max(0, freeMin)%60)}分<br><small>案件ノルマ: 約 ${jobH.toFixed(1)}時間/日</small>`; }
 
 
 
@@ -1175,9 +1304,40 @@ function saveDataAndRefresh() { saveData(); if(selectedDate) { updateJobArea(); 
 
 
 
-function showDay(d) { selectedDate = d; document.getElementById('current-day-label').textContent = d; document.getElementById('calendar-screen').classList.add('hidden'); document.getElementById('day-screen').classList.remove('hidden'); document.getElementById('back-to-cal-btn').classList.remove('hidden'); document.getElementById('mode-selector').classList.add('hidden'); renderTimeline(); updateJobArea(); }
-function showCalendar() { selectedDate = ""; document.getElementById('calendar-screen').classList.remove('hidden'); document.getElementById('day-screen').classList.add('hidden'); document.getElementById('back-to-cal-btn').classList.add('hidden'); document.getElementById('mode-selector').classList.remove('hidden'); renderCalendar(); }
+function showDay(d) {
+    selectedDate = d;
+
+    // --- 日付の表示形式を変換 ---
+    const dateObj = new Date(d);
+    const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+    const dayName = weekDays[dateObj.getDay()]; // 曜日を取得
+    
+    // 「2026年2月18日 (水)」という形式を作成
+    const formattedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日 (${dayName})`;
+    
+    // ラベルに反映
+    document.getElementById('current-day-label').textContent = formattedDate;
+
+    // --- 画面の表示切り替え ---
+    document.getElementById('calendar-screen').classList.add('hidden');
+    document.getElementById('day-screen').classList.remove('hidden');
+    document.getElementById('back-to-cal-btn').classList.remove('hidden');
+    document.querySelector('.month-nav').classList.add('hidden');
+    document.getElementById('month-reset-btn').classList.add('hidden');
+    document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'flex');
+    document.getElementById('mode-selector').classList.add('hidden');
+    
+    renderTimeline();
+    updateJobArea();
+}
+
+
+function showCalendar() { selectedDate = ""; document.getElementById('calendar-screen').classList.remove('hidden'); document.getElementById('day-screen').classList.add('hidden'); document.getElementById('back-to-cal-btn').classList.add('hidden'); document.getElementById('mode-selector').classList.remove('hidden');document.querySelector('.month-nav').classList.remove('hidden');
+    document.getElementById('month-reset-btn').classList.remove('hidden');document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none'); renderCalendar(); }
+
 function setAppMode(m) { inputMode = m; document.getElementById('mode-normal-btn').className = 'mode-btn' + (m==='normal'?' active':''); document.getElementById('mode-shift-btn').className = 'mode-btn' + (m==='shift'?' shift-active':''); renderCalendar(); }
+
+
 function changeMonth(diff) {
     currentViewDate.setMonth(currentViewDate.getMonth() + diff);
     fetchHolidays(); // ここも renderCalendar から fetchHolidays に変更

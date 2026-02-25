@@ -1303,36 +1303,57 @@ function getUpcomingJobs() {
     });
 }
 function sendJobNotification() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const threeDaysLater = new Date(today);
-    threeDaysLater.setDate(today.getDate() + 3);
+    const now = new Date();
+    // 日本時間の YYYY-MM-DD を確実に取得
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`; // "2026-02-25" 形式
 
-    // 1. 案件をフィルタリング（未完了・未削除・今日〜3日後が締切）
-    const upcomingJobs = (appData.longTermJobs || []).filter(j => {
-        const dueDate = new Date(j.end);
-        return !j.isDeleted && !j.isCompleted && dueDate >= today && dueDate <= threeDaysLater;
+    const todayTime = new Date(y, now.getMonth(), now.getDate()).getTime();
+    const threeDaysLaterTime = todayTime + (3 * 24 * 60 * 60 * 1000);
+
+    let upcomingJobs = (appData.longTermJobs || []).filter(j => {
+        // スラッシュをハイフンに置換して統一
+        const formattedEnd = j.end.replace(/\//g, '-');
+        const dueDate = new Date(formattedEnd);
+        const dueTime = dueDate.getTime();
+        
+        return !j.isDeleted && !j.isCompleted && dueTime >= todayTime && dueTime <= threeDaysLaterTime;
     });
 
     if (upcomingJobs.length === 0) return;
 
-    // 2. メッセージ作成
-    let title = upcomingJobs.length === 1 ? "📢 締切間近の案件があります" : `📢 締切間近が ${upcomingJobs.length} 件あります`;
-    let body = upcomingJobs.map(j => `・${j.name} (${j.end})`).join('\n');
+    upcomingJobs.sort((a, b) => new Date(a.end.replace(/\//g, '-')) - new Date(b.end.replace(/\//g, '-')));
+
+    // 1. メッセージ作成
+    let title = upcomingJobs.length === 1 ? "📢 締切間近の案件" : `📢 締切間近が ${upcomingJobs.length} 件あります`;
+    
+    // 2. 各案件の表示スタイルを設定
+    let bodyHtml = upcomingJobs.map(j => {
+        // 形式を統一して比較
+        const jobEnd = j.end.replace(/\//g, '-');
+        const isToday = (jobEnd === todayStr);
+
+        if (isToday) {
+            // ★ ここで色と太さを指定
+            return `<div style="color: #ff4d4d !important; font-weight: 900 !important; margin-bottom: 6px;">・${j.name} (本日締切！)</div>`;
+        } else {
+            return `<div style="margin-bottom: 4px; color: #ffffff;">・${j.name} (${j.end})</div>`;
+        }
+    }).join('');
 
     // 3. 画面に表示
     const bar = document.getElementById('app-notice-bar');
-    document.getElementById('notice-title').innerText = title;
-    document.getElementById('notice-body').innerText = body;
+    const titleEl = document.getElementById('notice-title');
+    const bodyEl = document.getElementById('notice-body');
+
+    titleEl.innerText = title;
+    bodyEl.innerHTML = bodyHtml; // innerHTMLを使う
     
     bar.style.display = 'block';
-
-    // タップで消える設定
     bar.onclick = () => { bar.style.display = 'none'; };
-
-    // 15秒後に自動で消す
-    setTimeout(() => { bar.style.display = 'none'; }, 15000);
+    setTimeout(() => { bar.style.display = 'none'; }, 10000);
 }
 
 // アプリの初期化

@@ -339,6 +339,7 @@ let touchTimer = null;
 let longPressed = false;
 let touchStartX = 0;
 let touchStartY = 0;
+let isDraggingTask = false; // タスク操作中フラグ
 
 let isDragging = false, dragMode = null, startIdx = null, activeTaskId = null, moveOffset = 0, tempRange = { start: 0, length: 0 }, scrollInterval = null, lastTouchY = 0;
 function saveJob() {
@@ -598,6 +599,7 @@ function renderCalendar() {
 // --- 1. 予定を動かし始める関数 (clientY版) ---
 function startDrag(t, e) {
     isDragging = true;
+　　isDraggingTask = true; // ★追記
     activeTaskId = t.id;
     const event = e.touches ? e.touches[0] : e;
     const tlRect = document.getElementById('timeline').getBoundingClientRect();
@@ -763,6 +765,7 @@ function renderTimeline() {
     touchTimer = setTimeout(() => {
         longPressed = true;
         isDragging = true; 
+        isDraggingTask = true; // ★追記：日付スワイプをガード 
         dragMode = 'create'; 
         startIdx = parseInt(slot.dataset.idx); 
         lastTouchY = touch.clientY;
@@ -1052,8 +1055,8 @@ function handleEnd() {
 
     // 4. 後片付け
     isDragging = false;
+    isDraggingTask = false; // ★追記：ガード解除
     longPressed = false;
-    dragMode = null;
     stopAutoScroll();
 
 
@@ -1379,6 +1382,8 @@ function init() {
     }, {passive: true});
 
     dayScreen.addEventListener('touchend', (e) => {
+// ★ここを追加：タスク操作中なら日付を切り替えない！
+    if (isDraggingTask) return;
         const touchEndX = e.changedTouches[0].pageX;
         const diff = touchStartX - touchEndX;
         if (diff > 100) slideDay(1);

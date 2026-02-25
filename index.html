@@ -1258,12 +1258,74 @@ function hardDeleteJob(id) {
     }
 }
 
+
+function getUpcomingJobs() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // 3日後の日付
+    const threeDaysLater = new Date(today);
+    threeDaysLater.setDate(today.getDate() + 3);
+
+    // 条件に合う案件を抽出
+    return (appData.longTermJobs || []).filter(j => {
+        const dueDate = new Date(j.end);
+        // 削除・完了されておらず、かつ「今日〜3日後」が締切のもの
+        return !j.isDeleted && !j.isCompleted && dueDate >= today && dueDate <= threeDaysLater;
+    });
+}
+function sendJobNotification() {
+    // ブラウザの通知許可を確認
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+        return;
+    }
+
+    const upcomingJobs = getUpcomingJobs();
+    if (upcomingJobs.length === 0) return; // 通知対象がなければ何もしない
+
+    let title = "";
+    let body = "";
+
+    if (upcomingJobs.length === 1) {
+        // 1件のとき
+        const j = upcomingJobs[0];
+        title = "締切間近の案件があります";
+        body = `${j.name} （締切: ${j.end}）`;
+    } else {
+        // 複数件のとき
+        title = `締切の近い案件が全部で${upcomingJobs.length}件あります`;
+        body = upcomingJobs.map(j => `${j.name} (${j.end})`).join('\n');
+    }
+
+    const notification = new Notification(title, {
+        body: body,
+        icon: "icon.png" // もしアイコンがあれば
+    });
+
+    // クリックした時にアプリを開くなどの処理
+    notification.onclick = () => {
+        window.focus();
+        // ここに「案件一覧を開く」などの処理を入れるとさらに便利です
+    };
+}
+
 // アプリの初期化
 function init() {
     loadData();
     renderCalendar();
     fetchHolidays();
     
+// ★ ここから追記：通知の初期設定と実行
+    if (window.Notification) {
+        if (Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+        // アプリ起動時に締切をチェックして通知を出す
+        sendJobNotification();
+    }
+    // ★ ここまで追記
+
     const dayScreen = document.getElementById('day-screen');
     dayScreen.addEventListener('touchstart', (e) => {
         if (document.getElementById('job-list-modal-overlay').style.display === 'flex') return; 

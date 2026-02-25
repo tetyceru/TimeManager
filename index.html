@@ -551,6 +551,9 @@ function isJobVisibleOnDate(job, dateStr) {
 
 function openJobMenuModal() {
     document.getElementById('job-menu-overlay').style.display = 'flex';
+// モーダルを開く処理のどこかに1行追加
+document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
+
 }
 
 
@@ -613,6 +616,8 @@ function openJobModal(id = null) {
         document.getElementById('job-memo').value = ""; // メモを空に
     } 
     document.getElementById('job-modal-overlay').style.display = 'flex'; 
+// モーダルを開く処理のどこかに1行追加
+document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
 }
 
 function openShiftModal() {
@@ -630,6 +635,8 @@ function openShiftModal() {
     document.getElementById('batch-shift-area').className = selectedDate ? 'hidden' : '';
     document.getElementById('save-day-shift-btn').className = selectedDate ? 'save-btn' : 'hidden';
     document.getElementById('shift-modal-overlay').style.display='flex';
+// モーダルを開く処理のどこかに1行追加
+document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
 }
 
 function saveDayShift() {
@@ -660,6 +667,8 @@ function saveDefShift() {
 
 function openJobMenuModal() {
     document.getElementById('job-menu-overlay').style.display = 'flex';
+// モーダルを開く処理のどこかに1行追加
+document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
 }
 
 function executeMonthlyReset() {
@@ -886,7 +895,8 @@ function renderTimeline() {
                 selectedColor = t.color;
                 tempRange = { start: t.start, length: t.length }; 
                 document.getElementById('modal-overlay').style.display = 'flex';
-            };
+　　　　　　　　document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');           
+ 　　　　　　　　　　};
 
             // ×ボタン
             const db = document.createElement('button');
@@ -1069,6 +1079,7 @@ const stopDrag = () => {
             tempRange = { start: Math.round(top / 20), length: Math.round(height / 20) };
             document.getElementById('task-name').value = "";
             document.getElementById('modal-overlay').style.display = 'flex';
+　　　　　　document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
         }
     }
 
@@ -1135,20 +1146,27 @@ function deleteJob(id) {
     renderCalendar(); // カレンダーの表示も更新
 }
 
-function openSleepModal() { const s = (selectedDate && appData.singleSleeps[selectedDate]) ? appData.singleSleeps[selectedDate] : appData.defSleep; document.getElementById('sleep-start').value = indexToTime(s.start); document.getElementById('sleep-end').value = indexToTime(s.end); document.getElementById('batch-sleep-area').className = selectedDate ? 'hidden' : ''; document.getElementById('save-day-sleep-btn').className = selectedDate ? 'save-btn' : 'hidden'; document.getElementById('sleep-modal-overlay').style.display='flex'; }
-function openShiftModal() { const s = (selectedDate && appData.singleShifts[selectedDate]) ? appData.singleShifts[selectedDate] : appData.defShift; document.getElementById('set-shift-start').value = indexToTime(s.start); document.getElementById('set-shift-end').value = indexToTime(s.end); document.getElementById('batch-shift-area').className = selectedDate ? 'hidden' : ''; document.getElementById('save-day-shift-btn').className = selectedDate ? 'save-btn' : 'hidden'; document.getElementById('shift-modal-overlay').style.display='flex'; }
+function openSleepModal() { const s = (selectedDate && appData.singleSleeps[selectedDate]) ? appData.singleSleeps[selectedDate] : appData.defSleep; document.getElementById('sleep-start').value = indexToTime(s.start); // モーダルを開く処理のどこかに1行追加
+document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');document.getElementById('sleep-end').value = indexToTime(s.end); document.getElementById('batch-sleep-area').className = selectedDate ? 'hidden' : ''; document.getElementById('save-day-sleep-btn').className = selectedDate ? 'save-btn' : 'hidden'; document.getElementById('sleep-modal-overlay').style.display='flex'; }
+function openShiftModal() { const s = (selectedDate && appData.singleShifts[selectedDate]) ? appData.singleShifts[selectedDate] : appData.defShift; document.getElementById('set-shift-start').value = indexToTime(s.start); document.getElementById('set-shift-end').value = indexToTime(s.end); document.getElementById('batch-shift-area').className = selectedDate ? 'hidden' : ''; document.getElementById('save-day-shift-btn').className = selectedDate ? 'save-btn' : 'hidden'; // モーダルを開く処理のどこかに1行追加
+document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');document.getElementById('shift-modal-overlay').style.display='flex'; }
 
 function openJumpModal() { const ys = document.getElementById('jump-year'), ms = document.getElementById('jump-month'); ys.innerHTML = ""; ms.innerHTML = ""; const curY = new Date().getFullYear(); for(let y=curY-1; y<=curY+3; y++) ys.innerHTML += `<option value="${y}" ${y==currentViewDate.getFullYear()?'selected':''}>${y}年</option>`; for(let m=0; m<12; m++) ms.innerHTML += `<option value="${m}" ${m==currentViewDate.getMonth()?'selected':''}>${m+1}月</option>`; document.getElementById('jump-modal-overlay').style.display='flex'; }
-function jumpToMonth() { currentViewDate.setFullYear(document.getElementById('jump-year').value); currentViewDate.setMonth(document.getElementById('jump-month').value); renderCalendar(); closeModal('jump-modal-overlay'); }
+function jumpToMonth() { currentViewDate.setFullYear(document.getElementById('jump-year').value); currentViewDate.setMonth(document.getElementById('jump-month').value); renderCalendar(); closeModal('jump-modal-overlay');// モーダルを開く処理のどこかに1行追加
+document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none'); }
 function closeModal(id) {
-    // 指定されたもの（新規登録画面など）だけをピンポイントで消す
     const target = document.getElementById(id);
     if (target) {
         target.style.display = 'none';
     }
-    // ここで全部を消さない（案件メニューが裏にあれば、そのまま残る）
-}
 
+    // タイムライン画面（day-screen）が表示されている時だけ、矢印を再表示させる
+    const isDayScreenVisible = !document.getElementById('day-screen').classList.contains('hidden');
+    
+    if (isDayScreenVisible) {
+        document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'flex');
+    }
+}
 function checkConflict(s, l, id, shift, sleep) {
     if (!sleep) sleep = appData.defSleep;
     if (!shift) shift = appData.defShift;
@@ -1212,6 +1230,7 @@ function handleEnd() {
             // 入力ポップアップを表示
             document.getElementById('task-name').value = "";
             document.getElementById('modal-overlay').style.display = 'flex';
+　　　　　　document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
         }
     } else if (dragMode === 'move') {
         const pre = document.querySelector('.move-preview');
@@ -1372,6 +1391,8 @@ function saveTask() {
     saveDataAndRefresh();
     document.getElementById('modal-overlay').style.display = 'none';
 
+closeModal('modal-overlay');
+
 }
 
 
@@ -1479,7 +1500,9 @@ function openJobList() {
         `;
         container.appendChild(div);
     });
-    document.getElementById('job-list-modal-overlay').style.display = 'flex';
+// モーダルを開く処理のどこかに1行追加
+document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');    
+document.getElementById('job-list-modal-overlay').style.display = 'flex';
 }
 
 // 履歴から完全に削除

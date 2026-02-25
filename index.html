@@ -293,23 +293,29 @@
 </div>
 
 <div id="app-notice-bar" style="
-    display:none; 
-    position:fixed; 
-    top:20px; 
-    left:50%; 
-    transform:translateX(-50%); 
-    width:90%; 
-    z-index:99999; /* とにかく一番手前に持ってくる */
-    background: #333;
-    color: white;
-    padding: 15px;
-    border-radius: 12px;
+    display: none; 
+    position: fixed; 
+    top: 20px; 
+    left: 5%;         /* 画面の左から5%の位置（余白） */
+    right: 5%;        /* 画面の右から5%の位置（余白） */
+    width: 90%;       /* 画面幅の90%を使う */
+    max-width: 400px; /* PCなど大きな画面では広がりすぎないように */
+    margin: 0 auto;   /* 中央寄せの予備 */
+    background: rgba(40, 40, 40, 0.95); 
+    color: white; 
+    padding: 15px; 
+    border-radius: 12px; 
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5); 
+    z-index: 10000;   /* 他の要素より絶対手前 */
+    border: 1px solid #555;
+    box-sizing: border-box; /* パディングを含めた幅計算にする */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px); /* iPhone用のぼかし */
 ">
-    <div id="notice-title" style="font-weight:bold; font-size:15px; color:#ffdd00; margin-bottom:5px;"></div>
-    <div id="notice-body" style="font-size:13px; line-height:1.4; white-space:pre-wrap;"></div>
-    <div style="text-align:right; font-size:10px; margin-top:8px; opacity:0.7;">タップで閉じる</div>
+    <div id="notice-title" style="font-weight:bold; font-size:16px; color:#ffdd00; margin-bottom:8px; border-bottom:1px solid #555; padding-bottom:5px;"></div>
+    <div id="notice-body" style="font-size:14px; line-height:1.5; white-space:pre-wrap; word-wrap: break-word;"></div>
+    <div style="text-align:center; font-size:11px; margin-top:10px; opacity:0.6; font-style:italic;">タップして閉じる</div>
 </div>
-
 
 <script>
 let isEditingFromList = false; // ★この行を追加（目印になります）
@@ -1297,7 +1303,6 @@ function getUpcomingJobs() {
     });
 }
 function sendJobNotification() {
-alert("チェック開始！");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     

@@ -133,6 +133,10 @@
     </style>
 </head>
 <body>
+<div id="app-notification" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); width:90%; max-width:400px; background:#333; color:#fff; padding:15px; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.3); z-index:10000; cursor:pointer;">
+    <div id="notification-title" style="font-weight:bold; font-size:16px; margin-bottom:5px;"></div>
+    <div id="notification-body" style="font-size:14px; white-space:pre-wrap;"></div>
+</div>
 
 <div class="container">
     <div class="header">
@@ -286,6 +290,12 @@
         <button id="save-day-shift-btn" onclick="saveDayShift()" class="save-btn hidden">この日のみ保存</button>
         <button onclick="closeModal('shift-modal-overlay')" style="width:100%; border:none; background:none; margin-top:10px; padding:10px;">閉じる</button>
     </div>
+</div>
+
+<div id="app-notice-bar" style="display:none; position:fixed; top:10px; left:5:%; transform:translateX(-50%); width:90%; max-width:400px; background:rgba(40,40,40,0.95); color:white; padding:15px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.4); z-index:9999; border:1px solid #555; backdrop-filter:blur(5px);">
+    <div id="notice-title" style="font-weight:bold; font-size:15px; color:#ffdd00; margin-bottom:5px;"></div>
+    <div id="notice-body" style="font-size:13px; line-height:1.4; white-space:pre-wrap;"></div>
+    <div style="text-align:right; font-size:10px; margin-top:8px; opacity:0.7;">タップで閉じる</div>
 </div>
 
 
@@ -1275,39 +1285,36 @@ function getUpcomingJobs() {
     });
 }
 function sendJobNotification() {
-    // ブラウザの通知許可を確認
-    if (Notification.permission !== "granted") {
-        Notification.requestPermission();
-        return;
-    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const threeDaysLater = new Date(today);
+    threeDaysLater.setDate(today.getDate() + 3);
 
-    const upcomingJobs = getUpcomingJobs();
-    if (upcomingJobs.length === 0) return; // 通知対象がなければ何もしない
-
-    let title = "";
-    let body = "";
-
-    if (upcomingJobs.length === 1) {
-        // 1件のとき
-        const j = upcomingJobs[0];
-        title = "締切間近の案件があります";
-        body = `${j.name} （締切: ${j.end}）`;
-    } else {
-        // 複数件のとき
-        title = `締切の近い案件が全部で${upcomingJobs.length}件あります`;
-        body = upcomingJobs.map(j => `${j.name} (${j.end})`).join('\n');
-    }
-
-    const notification = new Notification(title, {
-        body: body,
-        icon: "icon.png" // もしアイコンがあれば
+    // 1. 案件をフィルタリング（未完了・未削除・今日〜3日後が締切）
+    const upcomingJobs = (appData.longTermJobs || []).filter(j => {
+        const dueDate = new Date(j.end);
+        return !j.isDeleted && !j.isCompleted && dueDate >= today && dueDate <= threeDaysLater;
     });
 
-    // クリックした時にアプリを開くなどの処理
-    notification.onclick = () => {
-        window.focus();
-        // ここに「案件一覧を開く」などの処理を入れるとさらに便利です
-    };
+    if (upcomingJobs.length === 0) return;
+
+    // 2. メッセージ作成
+    let title = upcomingJobs.length === 1 ? "📢 締切間近の案件があります" : `📢 締切間近が ${upcomingJobs.length} 件あります`;
+    let body = upcomingJobs.map(j => `・${j.name} (${j.end})`).join('\n');
+
+    // 3. 画面に表示
+    const bar = document.getElementById('app-notice-bar');
+    document.getElementById('notice-title').innerText = title;
+    document.getElementById('notice-body').innerText = body;
+    
+    bar.style.display = 'block';
+
+    // タップで消える設定
+    bar.onclick = () => { bar.style.display = 'none'; };
+
+    // 15秒後に自動で消す
+    setTimeout(() => { bar.style.display = 'none'; }, 15000);
 }
 
 // アプリの初期化

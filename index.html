@@ -31,7 +31,11 @@
             display: flex;
             justify-content: center;
             -webkit-tap-highlight-color: transparent;
-            overscroll-behavior-y: contain;
+            overscroll-behavior-y: none;
+            /* containより強力にブラウザのバウンスを抑制 */
+            user-select: none;
+            /* 文字選択が走ってドラッグが途切れるのを防ぐ */
+            -webkit-user-select: none;
         }
 
         .container {
@@ -214,42 +218,46 @@
             font-weight: bold;
         }
 
-        /* Timeline */
+        /* タイムラインを囲む親玉（スクロールする枠） */
         #timeline-container {
             position: relative;
             margin-left: 50px;
-            /* ★左側に時間の数字が入るスペースを空ける */
+            /* ★元の設定：左側にスペースを空ける */
             margin-right: 10px;
+            /* ★元の設定：右側の余白 */
+            /* 親要素の幅に合わせてタイムラインが伸縮するように設定 */
         }
 
         #timeline {
             width: 100%;
             height: 1920px;
-            /* 20px × 96マス分 */
             border: 1px solid #ccc;
             position: relative;
             background: #fff;
             touch-action: none;
             box-sizing: border-box;
             overflow: visible;
+            /* ラベルを外に出すために必須 */
         }
 
         .time-slot {
             height: 20px;
-            /* 各マスの高さを20pxに固定 */
             box-sizing: border-box;
             border-bottom: 1px solid #eee;
             position: relative;
         }
 
+        /* 時刻ラベルの基本スタイル */
         .time-label {
             position: absolute;
-            left: -45px;
-            width: 40px;
+            left: -50px;
+            /* margin-leftの50pxの中にピッタリ収まる */
+            width: 45px;
             text-align: right;
-            font-size: 10px;
+            font-size: 11px;
             color: #888;
-            line-height: 20px;
+            font-weight: bold;
+            /* topとline-heightはJS側で精密に制御します */
         }
 
         .fixed-busy {
@@ -278,6 +286,7 @@
             cursor: grab;
             box-sizing: border-box;
             overflow: visible;
+            touch-action: none !important;
             transition: box-shadow 0.2s;
         }
 
@@ -310,6 +319,18 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .del-btn-mini {
+            position: relative;
+            /* z-indexを有効にするため */
+            z-index: 1000 !important;
+            /* ブロック(10)より確実に上に */
+            cursor: pointer;
+            pointer-events: auto !important;
+            /* 確実に反応させる */
+            touch-action: manipulation;
+            /* ズームなどの余計な挙動を抑止 */
         }
 
         .move-preview {
@@ -449,7 +470,7 @@
             margin-top: 10px;
         }
 
-        /* <style> タグの中に貼り付けてください */
+
         .side-nav {
             display: none;
             /* ★これを追加：初期状態は隠す */
@@ -560,28 +581,131 @@
             /* ブロック上でも上下スクロールを許可 */
         }
 
-        .drag-handle {
-            width: 30px;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: grab;
-            background: rgba(0, 0, 0, 0.1);
-            color: white;
-            flex-shrink: 0;
+        /* 予定ブロック自体の重なり順を調整 */
+        .task-block {
             touch-action: none;
-            user-select: none;
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            /* ブラウザのスクロールと競合しないようにする */
         }
 
-        /* ハンドルの角丸を本体に合わせる調整 */
-        .handle-left .drag-handle {
-            border-radius: 4px 0 0 4px;
+
+        /* スタイルの最初の方に書く */
+        #scroll-remote-control {
+            display: none;
         }
 
-        .handle-right .drag-handle {
-            border-radius: 0 4px 4px 0;
+        /* スマホ（画面幅 768px 以下）の時の設定 */
+        @media (max-width: 768px) {
+
+
+
+
+            /* 画面右端のスクロール用ハンドル（リモコン） */
+            #scroll-remote-control {
+                position: fixed;
+                right: 0;
+                top: 20%;
+                width: 45px;
+                height: 60%;
+                background: rgba(0, 0, 0, 0.4);
+                color: white;
+                z-index: 9999;
+                display: none;
+                /* JSで timeline 表示時のみ show に切り替えるのが理想 */
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                border-radius: 20px 0 0 20px;
+                touch-action: none;
+                box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+                pointer-events: auto;
+            }
+
+            .remote-icon {
+                font-size: 20px;
+                margin-bottom: 10px;
+            }
+
+            .remote-label {
+                font-size: 11px;
+                writing-mode: vertical-rl;
+                letter-spacing: 2px;
+                opacity: 0.8;
+            }
+
+            /* 予定ブロック内の三本線は不要なので非表示にするか、デザインをシンプルに */
+            .drag-handle {
+                display: none !important;
+                /* ブロック内の三本線は消す */
+            }
+
+
+        }
+
+        .remote-icon {
+            font-size: 20px;
+            margin: 10px 0;
+            opacity: 0.8;
+        }
+
+        .remote-text {
+            writing-mode: vertical-rl;
+            font-size: 11px;
+            letter-spacing: 3px;
+            opacity: 0.7;
+        }
+
+        .move-preview.collision {
+            background-color: rgba(255, 77, 77, 0.6) !important;
+            /* 透明感のある赤 */
+            border: 2px solid #ff0000 !important;
+        }
+
+        /* ついでに新規作成ガイド（長押し時）用も */
+        .drag-guide.collision {
+            background: rgba(255, 77, 77, 0.3) !important;
+            border: 2px dashed #ff0000 !important;
+            color: #ff0000 !important;
+        }
+
+        .custom-task::before,
+        .custom-task::after {
+            content: "";
+            position: absolute;
+            left: 20%;
+            right: 20%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 2px;
+        }
+
+        .custom-task::before {
+            top: 4px;
+        }
+
+        /* 上のハンドル */
+        .custom-task::after {
+            bottom: 4px;
+        }
+
+        /* 下のハンドル */
+
+        .custom-task::before,
+        .custom-task::after {
+            content: "";
+            position: absolute;
+            left: 30%;
+            right: 30%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 2px;
+        }
+
+        .custom-task::before {
+            top: 4px;
+        }
+
+        .custom-task::after {
+            bottom: 4px;
         }
     </style>
 </head>
@@ -839,6 +963,8 @@
         </div>
 
         <script>
+            let scrollInterval = null;
+            let currentScrollSpeed = 0;
             let isEditingFromList = false; // ★この行を追加（目印になります）
             let currentViewDate = new Date(); currentViewDate.setDate(1);
             const STORAGE_KEY = 'TimeManager_V22';
@@ -862,10 +988,7 @@
             let touchStartY = 0;
             let isDraggingTask = false; // タスク操作中フラグ
 
-            let isDragging = false, dragMode = null, startIdx = null, activeTaskId = null, moveOffset = 0, tempRange = { start: 0, length: 0 }, scrollInterval = null, lastTouchY = 0;
-            
-            function setAppMode(m) { inputMode = m; document.getElementById('mode-normal-btn').className = 'mode-btn' + (m === 'normal' ? ' active' : ''); document.getElementById('mode-shift-btn').className = 'mode-btn' + (m === 'shift' ? ' shift-active' : ''); renderCalendar(); }
-            
+            let isDragging = false, dragMode = null, startIdx = null, activeTaskId = null, moveOffset = 0, tempRange = { start: 0, length: 0 }, lastTouchY = 0;
             function saveJob() {
                 const id = document.getElementById('edit-job-id').value;
                 const name = document.getElementById('job-name').value;
@@ -916,9 +1039,6 @@
                 renderCalendar();
                 if (typeof updateJobArea === 'function') updateJobArea();
             }
-
-
-
 
             function dtToStr(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
             function loadData() {
@@ -972,92 +1092,92 @@
             }
 
 
-function renderCalendar() {
-    const grid = document.getElementById('calendar-grid'); 
-    grid.innerHTML = "";
+            function renderCalendar() {
+                const grid = document.getElementById('calendar-grid');
+                grid.innerHTML = "";
 
-    const y = currentViewDate.getFullYear();
-    const m = currentViewDate.getMonth();
-    const holidays = holidayData;
+                const y = currentViewDate.getFullYear();
+                const m = currentViewDate.getMonth();
+                const holidays = holidayData;
 
-    // タイトル更新
-    document.getElementById('view-title').textContent = `${y}年 ${m + 1}月`;
+                // タイトル更新
+                document.getElementById('view-title').textContent = `${y}年 ${m + 1}月`;
 
-    // 1日の曜日(0:日〜6:土)と、その月の最終日を取得
-    const firstDay = new Date(y, m, 1).getDay();
-    const lastDate = new Date(y, m + 1, 0).getDate();
+                // 1日の曜日(0:日〜6:土)と、その月の最終日を取得
+                const firstDay = new Date(y, m, 1).getDay();
+                const lastDate = new Date(y, m + 1, 0).getDate();
 
-    // ★ 前月の最終日を取得
-    const prevMonthLastDate = new Date(y, m, 0).getDate();
+                // ★ 前月の最終日を取得
+                const prevMonthLastDate = new Date(y, m, 0).getDate();
 
-    // 1. 前月の末尾を埋める
-    for (let i = firstDay - 1; i >= 0; i--) {
-        const date = prevMonthLastDate - i;
-        const emptyDiv = document.createElement('div');
-        emptyDiv.className = 'calendar-day other-month'; // 専用のクラスを付与
-        emptyDiv.innerHTML = `<div class="day-num">${date}</div>`;
-        grid.appendChild(emptyDiv);
-    }
+                // 1. 前月の末尾を埋める
+                for (let i = firstDay - 1; i >= 0; i--) {
+                    const date = prevMonthLastDate - i;
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'calendar-day other-month'; // 専用のクラスを付与
+                    emptyDiv.innerHTML = `<div class="day-num">${date}</div>`;
+                    grid.appendChild(emptyDiv);
+                }
 
-    // 2. 日付を1日から末日まで描画
-    for (let i = 1; i <= lastDate; i++) {
-        const dStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        const day = document.createElement('div'); 
-        day.className = 'calendar-day';
+                // 2. 日付を1日から末日まで描画
+                for (let i = 1; i <= lastDate; i++) {
+                    const dStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                    const day = document.createElement('div');
+                    day.className = 'calendar-day';
 
-        // 各種状態のクラス付け
-        if (inputMode === 'shift') day.classList.add('shift-mode-active');
-        if (dStr === dtToStr(new Date())) day.classList.add('is-today');
+                    // 各種状態のクラス付け
+                    if (inputMode === 'shift') day.classList.add('shift-mode-active');
+                    if (dStr === dtToStr(new Date())) day.classList.add('is-today');
 
-        let html = "";
-        // 祝日判定
-        if (holidays[dStr]) { 
-            day.classList.add('is-holiday'); 
-            html += `<div class="holiday-name">${holidays[dStr]}</div>`; 
-        }
-        html += `<div class="day-num">${i}</div>`;
+                    let html = "";
+                    // 祝日判定
+                    if (holidays[dStr]) {
+                        day.classList.add('is-holiday');
+                        html += `<div class="holiday-name">${holidays[dStr]}</div>`;
+                    }
+                    html += `<div class="day-num">${i}</div>`;
 
-        // 表示アイテム（シフトと案件）の作成
-        let displayItems = [];
-        if (appData.singleShifts[dStr]) {
-            displayItems.push(`<div class="job-band shift-band">勤:${indexToTime(appData.singleShifts[dStr].start)}</div>`);
-        }
-        (appData.longTermJobs || []).filter(j => isJobVisibleOnDate(j, dStr)).forEach(j => {
-            displayItems.push(`<div class="job-band ${j.isDeleted ? 'deleted' : ''}">${j.name}</div>`);
-        });
+                    // 表示アイテム（シフトと案件）の作成
+                    let displayItems = [];
+                    if (appData.singleShifts[dStr]) {
+                        displayItems.push(`<div class="job-band shift-band">勤:${indexToTime(appData.singleShifts[dStr].start)}</div>`);
+                    }
+                    (appData.longTermJobs || []).filter(j => isJobVisibleOnDate(j, dStr)).forEach(j => {
+                        displayItems.push(`<div class="job-band ${j.isDeleted ? 'deleted' : ''}">${j.name}</div>`);
+                    });
 
-        // 2件まで表示、それ以上は「他x件」
-        displayItems.slice(0, 2).forEach(item => html += item);
-        if (displayItems.length > 2) {
-            html += `<div style="font-size:8px;color:#888;text-align:right">他${displayItems.length - 2}件</div>`;
-        }
+                    // 2件まで表示、それ以上は「他x件」
+                    displayItems.slice(0, 2).forEach(item => html += item);
+                    if (displayItems.length > 2) {
+                        html += `<div style="font-size:8px;color:#888;text-align:right">他${displayItems.length - 2}件</div>`;
+                    }
 
-        day.innerHTML = html;
+                    day.innerHTML = html;
 
-        // クリックイベント
-        day.onclick = () => { 
-            if (inputMode === 'shift') { 
-                if (appData.singleShifts[dStr]) delete appData.singleShifts[dStr]; 
-                else appData.singleShifts[dStr] = { ...appData.defShift }; 
-                saveData(); 
-                renderCalendar(); 
-            } else {
-                showDay(dStr); 
+                    // クリックイベント
+                    day.onclick = () => {
+                        if (inputMode === 'shift') {
+                            if (appData.singleShifts[dStr]) delete appData.singleShifts[dStr];
+                            else appData.singleShifts[dStr] = { ...appData.defShift };
+                            saveData();
+                            renderCalendar();
+                        } else {
+                            showDay(dStr);
+                        }
+                    };
+                    grid.appendChild(day);
+                }
+                // 3. 翌月の始まりを埋める（その週の土曜日まで）
+                const lastDayOfOfMonth = new Date(y, m + 1, 0).getDay(); // 今月末日の曜日 (0:日〜6:土)
+                const nextCells = 6 - lastDayOfOfMonth; // 土曜日(6)までの残りのマス数
+
+                for (let i = 1; i <= nextCells; i++) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'calendar-day other-month';
+                    emptyDiv.innerHTML = `<div class="day-num">${i}</div>`;
+                    grid.appendChild(emptyDiv);
+                }
             }
-        };
-        grid.appendChild(day);
-    }
-// 3. 翌月の始まりを埋める（その週の土曜日まで）
-    const lastDayOfOfMonth = new Date(y, m + 1, 0).getDay(); // 今月末日の曜日 (0:日〜6:土)
-    const nextCells = 6 - lastDayOfOfMonth; // 土曜日(6)までの残りのマス数
-
-    for (let i = 1; i <= nextCells; i++) {
-        const emptyDiv = document.createElement('div');
-        emptyDiv.className = 'calendar-day other-month';
-        emptyDiv.innerHTML = `<div class="day-num">${i}</div>`;
-        grid.appendChild(emptyDiv);
-    }
-}
 
 
 
@@ -1192,7 +1312,7 @@ function renderCalendar() {
 
                 // ★【ここが重要】判定を無視して、全部強制的に描き直す！
                 renderCalendar();  // カレンダーを更新
-                renderTimeline();  // タイムラインを更新（これで予定が消える！）
+                renderTimeline();  // タイムラインを更新
                 updateFreeTime();  // 空き時間表示も更新
             }
 
@@ -1226,16 +1346,28 @@ function renderCalendar() {
                     if (i % 4 === 0) {
                         const label = document.createElement("div");
                         label.className = "time-label";
+
+                        // ★元の位置設定
                         label.style.position = "absolute";
                         label.style.left = "-50px";
                         label.style.width = "45px";
                         label.style.textAlign = "right";
-                        label.style.fontSize = "12px";
+
+                        // ★微調整：線の真横に文字が来るように
+                        label.style.top = "-10px";
+                        label.style.lineHeight = "20px";
+
+                        label.style.fontSize = "11px";
                         label.style.color = "#888";
                         label.style.fontWeight = "bold";
+                        label.style.pointerEvents = "none";
+                        label.style.zIndex = "20"; // 睡眠・仕事背景より前に出す
+
                         label.textContent = Math.floor(i / 4) + ":00";
                         slot.appendChild(label);
                     }
+
+                    tl.appendChild(slot);
 
                     // --- 背景色判定 ---
                     const isSleep = (sleep.start < sleep.end) ? (i >= sleep.start && i < sleep.end) : (i >= sleep.start || i < sleep.end);
@@ -1253,202 +1385,342 @@ function renderCalendar() {
                     const t = tasks.find(x => i === x.start);
                     if (t) {
                         const el = document.createElement("div");
-                        // 利き手設定クラスを付与
-                        const side = (appData.settings && appData.settings.handleSide === 'left') ? 'left' : 'right';
-                        el.className = `custom-task handle-${side}`;
+                        el.className = "custom-task";
 
                         el.style.backgroundColor = t.color;
                         el.style.height = (t.length * 20 - 1) + "px";
                         el.style.position = "absolute";
                         el.style.top = "0";
-                        el.style.left = "5%"; el.style.right = "5%"; // スクロール用の隙間
+                        el.style.left = "2px"; el.style.right = "2px";
                         el.style.zIndex = "10";
                         el.style.display = "flex"; el.style.alignItems = "center";
                         el.style.borderRadius = "4px"; el.style.boxSizing = "border-box";
-
-                        // ★ドラッグハンドル
-                        const handle = document.createElement("div");
-                        handle.className = "drag-handle";
-                        handle.innerHTML = "☰";
-                        handle.style.cssText = "width:30px; height:100%; display:flex; align-items:center; justify-content:center; cursor:grab; background:rgba(0,0,0,0.1); color:white; flex-shrink:0;";
 
                         // --- テキスト ---
                         const txt = document.createElement("span");
                         txt.style.cssText = "flex:1; overflow:hidden; white-space:nowrap; pointer-events:none; display:flex; flex-direction:column; line-height:1.1; padding:0 6px;";
                         const totalMin = t.length * 15;
-                        const timeStr = totalMin >= 60 ? `${Math.floor(totalMin / 60)}h${totalMin % 60}m` : `${totalMin}m`;
+                        const timeStr = totalMin >= 60 ? `${Math.floor(totalMin / 60)}時間${totalMin % 60}分` : `${totalMin}分`;
                         txt.innerHTML = `<b style="font-size:10px;">${t.name}</b><span style="font-size:8px; opacity:0.8;">${timeStr}</span>`;
 
                         // --- ボタングループ ---
                         const btnGroup = document.createElement('div');
-                        btnGroup.style.display = "flex"; btnGroup.style.gap = "2px"; btnGroup.style.padding = "0 4px";
+                        btnGroup.style.display = "flex"; btnGroup.style.gap = "4px"; btnGroup.style.padding = "0 4px";
 
+                        // 編集ボタン
                         const eb = document.createElement('button');
                         eb.className = 'del-btn-mini'; eb.innerHTML = '✏️';
-                        eb.onclick = (e) => {
+                        eb.onclick = eb.ontouchend = (e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             activeTaskId = t.id;
                             document.getElementById('task-name').value = t.name;
                             document.getElementById('modal-overlay').style.display = 'flex';
                             document.querySelectorAll('.side-nav').forEach(s => s.style.display = 'none');
                         };
+                        eb.ontouchstart = (e) => e.stopPropagation();
 
+                        // 削除ボタン
                         const db = document.createElement('button');
                         db.className = 'del-btn-mini'; db.innerHTML = '×';
-                        db.onclick = (e) => {
+                        db.onclick = db.ontouchend = (e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             activeTaskId = t.id;
                             document.getElementById('edit-info').textContent = t.name;
                             document.getElementById('edit-modal-overlay').style.display = 'flex';
+                            document.querySelectorAll('.side-nav').forEach(s => s.style.display = 'none');
                         };
+                        db.ontouchstart = (e) => e.stopPropagation();
 
                         btnGroup.appendChild(eb);
                         btnGroup.appendChild(db);
+                        el.appendChild(txt);
+                        el.appendChild(btnGroup);
 
-                        // --- 並び順（利き手設定反映） ---
-                        if (side === 'left') {
-                            el.appendChild(handle); el.appendChild(txt); el.appendChild(btnGroup);
-                        } else {
-                            el.appendChild(txt); el.appendChild(btnGroup); el.appendChild(handle);
-                        }
-
-                        // --- ハンドルを触った時だけドラッグ開始 ---
-                        const onDragStart = (e) => {
-                            e.preventDefault();
+                        // --- 予定ブロック自体のイベント（移動とリサイズ） ---
+                        const onTaskAction = (e) => {
+                            if (e.target.closest('button')) return;
                             e.stopPropagation();
-                            startDrag(t, e);
+                            e.preventDefault();
+
+                            const rect = el.getBoundingClientRect();
+                            const touchY = e.touches ? e.touches[0].clientY : e.clientY;
+                            const offsetY = touchY - rect.top;
+
+                            if (offsetY < 15) {
+                                startDrag(e, 'resize-top', t.id);
+                            } else if (offsetY > rect.height - 15) {
+                                startDrag(e, 'resize-bottom', t.id);
+                            } else {
+                                moveOffset = Math.floor(offsetY / 20);
+                                touchTimer = setTimeout(() => {
+                                    if (navigator.vibrate) navigator.vibrate(50);
+                                    startDrag(e, 'move', t.id);
+                                    updateDragDisplay();
+                                }, 500);
+                            }
                         };
-                        handle.onmousedown = onDragStart;
-                        handle.ontouchstart = onDragStart;
+
+                        el.onmousedown = onTaskAction;
+                        el.ontouchstart = onTaskAction;
+                        el.ontouchend = el.onmouseup = () => clearTimeout(touchTimer);
+                        el.ontouchmove = (e) => {
+                            if (!isDragging) clearTimeout(touchTimer);
+                        };
 
                         slot.appendChild(el);
                     } // ここで if (t) の閉じ
 
                     // --- スロット側のイベント（新規作成用） ---
-                    // --- スロット側のイベント（新規作成用） ---
                     slot.onmousedown = (e) => {
-                        if (e.target.closest('.custom-task')) return;
+
+                        if (e.target.closest('.custom-task')) return; // 予定の上ならスルー
+
                         isDragging = true;
                         dragMode = 'create';
-                        startIdx = i;
-                        lastTouchY = e.clientY;
-                        updateDragDisplay();
+                        startIdx = i; // ループの i を使用
+                        lastTouchY = e.clientY; // マウスの現在地を記録
+
+                        updateDragDisplay(); // 描画を即実行
                     };
 
                     slot.ontouchstart = (e) => {
                         if (e.target.closest('.custom-task')) return;
-
-                        // 開始位置を記録
+                        isDragging = true;
+                        dragMode = 'create';
+                        startIdx = i;
+                        lastTouchY = e.touches[0].clientY;
                         const touch = e.touches[0];
                         touchStartX = touch.clientX;
                         touchStartY = touch.clientY;
                         longPressed = false;
+                        isDraggingTask = true;
 
-                        // 0.6秒のタイマーを開始
                         touchTimer = setTimeout(() => {
                             longPressed = true;
                             isDragging = true;
-                            isDraggingTask = true; // 日付スワイプをガード 
+                            isDraggingTask = true;
                             dragMode = 'create';
                             startIdx = i;
                             lastTouchY = touch.clientY;
-
                             if (navigator.vibrate) navigator.vibrate(50);
                             updateDragDisplay();
                         }, 600);
-                    }; // ここで ontouchstart の閉じ
+                    };
 
-                    // スロットをタイムラインに追加
                     tl.appendChild(slot);
-
-                } // ここで 96回の for ループが終了
+                } // ここで for ループの閉じ
 
                 if (typeof updateFreeTime === 'function') updateFreeTime();
-            } // ここで renderTimeline 関数が終了
+                const remote = document.getElementById('scroll-remote-control');
+                if (remote) {
+                    remote.style.display = 'flex';
+                }
+            } // ここで renderTimeline 関数の閉じ
 
-
+            // 他の予定と重なっているかチェックする関数
+            function isColliding(targetTask) {
+                const tasks = appData.tasks[selectedDate] || [];
+                return tasks.some(t => {
+                    if (t.id === targetTask.id) return false;
+                    const targetEnd = targetTask.start + targetTask.length;
+                    const tEnd = t.start + t.length;
+                    return targetTask.start < tEnd && targetEnd > t.start;
+                });
+            }
 
             // --- 3. ドラッグ中の移動を処理する関数 ---
             function handleMove(e) {
+                if (!isDragging) return; // ドラッグ中でなければ何もしない
+
                 const event = e.touches ? e.touches[0] : e;
 
-                // まだ長押しが確定していない場合
-                if (!longPressed && e.touches) {
-                    // 指が10px以上動いたら「スクロールしたいんだな」と判断してタイマー解除
-                    const moveX = Math.abs(event.clientX - touchStartX);
-                    const moveY = Math.abs(event.clientY - touchStartY);
-                    if (moveX > 10 || moveY > 10) {
-                        clearTimeout(touchTimer);
-                    }
-                    return; // 作成処理には進まない
-                }
-
-                // 長押し確定後（isDragging中）の処理
-                if (!isDragging) return;
-                if (e.cancelable) e.preventDefault(); // スクロールを完全に止める
+                // スクロールを完全に止める（作成中や移動中に画面が逃げないように）
+                if (e.cancelable) e.preventDefault();
 
                 lastTouchY = event.clientY;
 
-                // スクロール判定（画面端での自動スクロール）
-                if (lastTouchY < 50) startAutoScroll(-10);
-                else if (lastTouchY > window.innerHeight - 50) startAutoScroll(10);
+                // 自動スクロール（指が画面の上下端に達した時だけ中身を動かす）
+                // これは予定を「朝の方」や「夜の方」へ長く伸ばしたい時に便利なので残します
+                if (lastTouchY < 100) startAutoScroll(-10);
+                else if (lastTouchY > window.innerHeight - 100) startAutoScroll(10);
                 else stopAutoScroll();
 
+                // 見た目の更新（予定の影を伸ばしたり動かしたりする）
                 updateDragDisplay();
             }
 
+
+
+
             function updateDragDisplay() {
+                // 1. ドラッグ中かチェック
                 if (!isDragging) return;
 
+                // 2. タイムラインの基準位置を取得
                 const tl = document.getElementById('timeline');
                 const tlRect = tl.getBoundingClientRect();
+
+                // 3. マウスの現在地(lastTouchY)から、タイムライン上の何マス目か計算
                 const relativeY = lastTouchY - tlRect.top;
                 let i = Math.floor(relativeY / 20);
-                i = Math.max(0, Math.min(95, i));
+                i = Math.max(0, Math.min(95, i)); // 0〜95の範囲に収める
 
-                // ★ ここを修正：move か resize の時だけタスクを探す
                 let t = null;
-                if (dragMode === 'move' || dragMode === 'resize') {
+                if (dragMode === 'move' || dragMode === 'resize-top' || dragMode === 'resize-bottom') {
                     t = (appData.tasks[selectedDate] || []).find(x => x.id === activeTaskId);
                 }
 
                 if (dragMode === 'create') {
+                    // startIdx が undefined の場合、今の位置を開始地点にする（保険）
+                    if (typeof startIdx === 'undefined') startIdx = i;
+
                     const [min, max] = [startIdx, i].sort((a, b) => a - b);
                     updateGuide(min, max);
+
+                    const g = document.getElementById('drag-guide');
+                    if (g) {
+                        // hiddenクラスを外して表示させる
+                        g.classList.remove('hidden');
+
+                        const length = max - min + 1;
+                        // ここで時間を計算して表示
+                        const totalMin = length * 15;
+                        const h = Math.floor(totalMin / 60);
+                        const m = totalMin % 60;
+                        const timeStr = h > 0 ? `${h}時間${m}分` : `${m}分`;
+
+                        if (isColliding({ id: null, start: min, length: length })) {
+                            g.classList.add('collision');
+                            g.textContent = "重なっています";
+                        } else {
+                            g.classList.remove('collision');
+                            g.textContent = ` ${timeStr}`;
+                        }
+                    }
                 }
                 else if (dragMode === 'move') {
-                    if (!t) return; // タスクが見つからない場合は何もしない
+                    if (!t) return;
                     let ns = Math.max(0, Math.min(96 - t.length, i - moveOffset));
                     showPreview(ns, t.length, t.color);
                 }
-                else if (dragMode === 'resize') {
-                    if (!t) return; // タスクが見つからない場合は何もしない
+                else if (dragMode === 'resize-bottom') {
+                    if (!t) return;
                     let newLen = Math.max(1, i - t.start + 1);
                     newLen = Math.min(96 - t.start, newLen);
                     showPreview(t.start, newLen, t.color);
                 }
+                else if (dragMode === 'resize-top') {
+                    if (!t) return;
+                    const currentEnd = t.start + t.length;
+                    let newStart = Math.max(0, Math.min(currentEnd - 1, i));
+                    let newLen = currentEnd - newStart;
+                    showPreview(newStart, newLen, t.color);
+                }
+
+                // リサイズ時の衝突チェック
+                const pre = document.querySelector('.move-preview');
+                if (pre && t) {
+                    // showPreviewでセットされたdatasetの値を使って判定
+                    const ns = parseInt(pre.dataset.ns);
+                    const nl = parseInt(pre.dataset.nl);
+
+                    if (isColliding({ id: t.id, start: ns, length: nl })) {
+                        pre.classList.add('collision');
+                    } else {
+                        pre.classList.remove('collision');
+                    }
+
+                }
+                handleAutoScroll(lastTouchY);
             }
 
+            function handleAutoScroll(clientY) {
+                const container = document.getElementById('timeline-container');
+                if (!container) return;
+
+                const rect = container.getBoundingClientRect();
+                const threshold = 80; // 判定エリアをさらに広げる
+
+                // 【上端判定】
+                if (clientY < rect.top + threshold) {
+                    console.log("上スクロール条件一致！");
+                    startAutoScroll(-15);
+                }
+                // 【下端判定】 rect.bottom が怪しいので、ブラウザの画面下端 (window.innerHeight) も考慮する
+                else if (clientY > rect.bottom - threshold || clientY > window.innerHeight - threshold) {
+                    console.log("下スクロール条件一致！");
+                    startAutoScroll(15);
+                }
+                else {
+                    stopAutoScroll();
+                }
+            }
+
+
             // プレビュー表示用の共通パーツ（重複を減らすため）
-            function showPreview(start, len, color) {
-                document.querySelectorAll('.move-preview').forEach(x => x.remove());
-                const pre = document.createElement('div');
-                pre.className = "custom-task move-preview";
-                pre.style.backgroundColor = color;
-                pre.style.top = `${start * 20}px`;
-                pre.style.height = `${len * 20 - 1}px`;
+            function showPreview(start, length, color) {
+                let pre = document.querySelector('.move-preview');
+                if (!pre) {
+                    pre = document.createElement('div');
+                    pre.className = 'move-preview';
+                    document.getElementById('timeline').appendChild(pre);
+                }
+
+                // dataset に値を保存（衝突判定で使用）
                 pre.dataset.ns = start;
-                pre.dataset.nl = len; // 新しい長さも保持
-                document.getElementById('timeline').appendChild(pre);
+                pre.dataset.nl = length;
+
+                // スタイル設定
+                pre.style.top = (start * 20) + "px";
+                pre.style.height = (length * 20 - 1) + "px";
+                pre.style.backgroundColor = color;
+                pre.style.opacity = "0.7";
+                pre.style.position = "absolute";
+                pre.style.left = "2px";
+                pre.style.right = "2px";
+                pre.style.zIndex = "100";
+                pre.style.borderRadius = "4px";
+                pre.style.display = "flex";
+                pre.style.alignItems = "center";
+                pre.style.justifyContent = "center";
+                pre.style.color = "white";
+                pre.style.fontSize = "12px";
+                pre.style.fontWeight = "bold";
+                pre.style.pointerEvents = "none";
+
+                // --- ここで時間を計算して表示 ---
+                const totalMin = length * 15;
+                const hours = Math.floor(totalMin / 60);
+                const mins = totalMin % 60;
+
+                let timeText = "";
+                if (hours > 0) {
+                    timeText = `${hours}時間${mins > 0 ? mins + '分' : ''}`;
+                } else {
+                    timeText = `${mins}分`;
+                }
+
+                pre.textContent = timeText;
             }
 
 
             // --- オートスクロール関連 ---
             function startAutoScroll(speed) {
-                if (scrollInterval) return;
+                if (scrollInterval && currentScrollSpeed === speed) return;
+                stopAutoScroll();
+                currentScrollSpeed = speed;
+
+                const container = document.getElementById('timeline-container');
+
                 scrollInterval = setInterval(() => {
-                    window.scrollBy(0, speed);
-                    // スクロール中もマウス位置と枠の関係を再計算してズレを防ぐ
+                    // コンテナがスクロール可能ならコンテナを、そうでなければ画面全体を動かす
+                    if (container && container.scrollHeight > container.clientHeight) {
+                        container.scrollTop += speed;
+                    } else {
+                        window.scrollBy(0, speed);
+                    }
                     updateDragDisplay();
                 }, 20);
             }
@@ -1457,41 +1729,101 @@ function renderCalendar() {
                 if (scrollInterval) {
                     clearInterval(scrollInterval);
                     scrollInterval = null;
+                    currentScrollSpeed = 0;
                 }
             }
 
+            function startDrag(e, mode, taskId = null) {
+                stopAutoScroll();
+                isDragging = true;
+                dragMode = mode;
+                activeTaskId = taskId;
+
+                // マウス(e.clientY)かタッチ(e.touches[0].clientY)か
+                const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+                lastTouchY = clientY; // ここを追加：現在の座標を記録
+
+                const container = document.getElementById('timeline-container');
+                const rect = container.getBoundingClientRect();
+                startY = clientY - rect.top + container.scrollTop;
+
+                if (mode === 'create') {
+                    startIdx = Math.floor(y / 20); // startIdxを更新
+                    updateGuide(startIdx, startIdx);
+                }
+            }
+
+
             // --- ドラッグ終了時の処理（ここを丸ごと差し替え） ---
             const stopDrag = () => {
+                // 1. まず何よりも先にスクロールを止める
                 stopAutoScroll();
+
+                // ドラッグ中でなければ終了
                 if (!isDragging) return;
 
-                const pre = document.querySelector('.move-preview');
-                const t = appData.tasks[selectedDate]?.find(x => x.id === activeTaskId);
+                // 2. 衝突判定用の関数を定義（外にない場合の保険）
+                const tasks = appData.tasks[selectedDate] || [];
+                const internalCheckCollision = (start, length, id) => {
+                    return tasks.some(other => {
+                        if (other.id === id) return false;
+                        const otherEnd = other.start + other.length;
+                        const currentEnd = start + length;
+                        return start < otherEnd && currentEnd > other.start;
+                    });
+                };
 
-                if (pre && t) {
-                    if (dragMode === 'move') {
-                        t.start = parseInt(pre.dataset.ns);
-                    } else if (dragMode === 'resize') {
-                        t.length = parseInt(pre.dataset.nl);
+                const currentMode = dragMode;
+                const currentTaskId = activeTaskId;
+                const pre = document.querySelector('.move-preview');
+
+                try {
+                    // --- A. 移動・リサイズの確定 ---
+                    if (currentTaskId && (currentMode === 'move' || currentMode.startsWith('resize')) && pre) {
+                        let nextStart = parseInt(pre.dataset.ns);
+                        let nextLength = parseInt(pre.dataset.nl);
+
+                        if (!internalCheckCollision(nextStart, nextLength, currentTaskId)) {
+                            const t = tasks.find(x => x.id === currentTaskId);
+                            if (t) {
+                                t.start = nextStart;
+                                t.length = nextLength;
+                                saveData();
+                            }
+                        }
                     }
-                    saveData();
-                } else if (dragMode === 'create') {
-                    const g = document.getElementById('drag-guide');
-                    if (!g.classList.contains('hidden')) {
-                        const top = parseInt(g.style.top);
-                        const height = parseInt(g.style.height);
-                        tempRange = { start: Math.round(top / 20), length: Math.round(height / 20) };
-                        document.getElementById('task-name').value = "";
-                        document.getElementById('modal-overlay').style.display = 'flex';
-                        document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
+                    // --- B. 新規作成の確定 ---
+                    else if (currentMode === 'create') {
+                        const g = document.getElementById('drag-guide');
+                        if (g && !g.classList.contains('hidden')) {
+                            const top = parseInt(g.style.top) || 0;
+                            const height = parseInt(g.style.height) || 0;
+                            const nStart = Math.round(top / 20);
+                            const nLength = Math.round(height / 20);
+
+                            if (nLength > 0 && !internalCheckCollision(nStart, nLength, null)) {
+                                tempRange = { start: nStart, length: nLength };
+                                document.getElementById('task-name').value = "";
+                                document.getElementById('modal-overlay').style.display = 'flex';
+                            }
+                        }
                     }
+                } catch (e) {
+                    console.error("確定処理中にエラーが発生しました:", e);
                 }
 
+                // 3. 【最重要】何があってもドラッグ状態を解除する
                 isDragging = false;
                 dragMode = null;
+                activeTaskId = null;
+
+                // プレビュー類を消す
                 document.querySelectorAll('.move-preview').forEach(x => x.remove());
-                document.getElementById('drag-guide').classList.add('hidden');
-                renderTimeline(); // 変更を反映
+                const guide = document.getElementById('drag-guide');
+                if (guide) guide.classList.add('hidden');
+
+                // 再描画
+                renderTimeline();
             };
 
             function updateGuide(min, max) {
@@ -1604,6 +1936,17 @@ function renderCalendar() {
                     // 完全に重なっている場合のみNGとする（s+lがt.startと同じならOK）
                     return s < t.start + t.length && s + l > t.start;
                 });
+
+
+
+                // マウスを離した時（PC）
+                document.addEventListener('mouseup', handleEnd);
+
+                // 指が離れた時（スマホ）
+                // touchcancelは、操作中にアラームが鳴ったり画面が切り替わったりした時のための「中断」処理です
+                document.addEventListener('touchend', handleEnd, { passive: false });
+                document.addEventListener('touchcancel', handleEnd, { passive: false });
+
             }
 
             // 指を離したとき（mouseup / touchend）に呼ぶ共通処理
@@ -1652,6 +1995,8 @@ function renderCalendar() {
                 document.getElementById('drag-guide').classList.add('hidden');
                 document.querySelectorAll('.move-preview').forEach(x => x.remove());
             }
+
+
 
             function updateFreeTime() {
                 const shift = appData.singleShifts[selectedDate],
@@ -1716,46 +2061,47 @@ function renderCalendar() {
                 }
             }
 
+
+
             function saveDataAndRefresh() { saveData(); if (selectedDate) { updateJobArea(); renderTimeline(); } else renderCalendar(); updateFreeTime(); }
 
 
 
 
-                function showDay(d) {
-                    selectedDate = d;
+            function showDay(d) {
+                selectedDate = d;
 
-                    // --- 日付の表示形式を変換 ---
-                    const dateObj = new Date(d);
-                    const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
-                    const dayName = weekDays[dateObj.getDay()]; // 曜日を取得
+                // --- 日付の表示形式を変換 ---
+                const dateObj = new Date(d);
+                const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+                const dayName = weekDays[dateObj.getDay()]; // 曜日を取得
 
-                    // 「2026年2月18日 (水)」という形式を作成
-                    const formattedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日 (${dayName})`;
+                // 「2026年2月18日 (水)」という形式を作成
+                const formattedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日 (${dayName})`;
 
-                    // ラベルに反映
-                    document.getElementById('current-day-label').textContent = formattedDate;
+                // ラベルに反映
+                document.getElementById('current-day-label').textContent = formattedDate;
 
-                    // --- 画面の表示切り替え ---
-                    document.getElementById('calendar-screen').classList.add('hidden');
-                    document.getElementById('day-screen').classList.remove('hidden');
-                    document.getElementById('back-to-cal-btn').classList.remove('hidden');
-                    document.querySelector('.month-nav').classList.add('hidden');
-                    document.getElementById('month-reset-btn').classList.add('hidden');
-                    document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'flex');
-                    document.getElementById('mode-selector').classList.add('hidden');
+                // --- 画面の表示切り替え ---
+                document.getElementById('calendar-screen').classList.add('hidden');
+                document.getElementById('day-screen').classList.remove('hidden');
+                document.getElementById('back-to-cal-btn').classList.remove('hidden');
+                document.querySelector('.month-nav').classList.add('hidden');
+                document.getElementById('month-reset-btn').classList.add('hidden');
+                document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'flex');
+                document.getElementById('mode-selector').classList.add('hidden');
 
-                    renderTimeline();
-                    updateJobArea();
-                }
+                renderTimeline();
+                updateJobArea();
+            }
 
+            function setAppMode(m) { inputMode = m; document.getElementById('mode-normal-btn').className = 'mode-btn' + (m === 'normal' ? ' active' : ''); document.getElementById('mode-shift-btn').className = 'mode-btn' + (m === 'shift' ? ' shift-active' : ''); renderCalendar(); }
 
-                function showCalendar() {
-                    selectedDate = ""; document.getElementById('calendar-screen').classList.remove('hidden'); document.getElementById('day-screen').classList.add('hidden'); document.getElementById('back-to-cal-btn').classList.add('hidden'); document.getElementById('mode-selector').classList.remove('hidden'); document.querySelector('.month-nav').classList.remove('hidden');
-                    document.getElementById('month-reset-btn').classList.remove('hidden'); document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none'); renderCalendar();
-                }
+            function showCalendar() {
+                selectedDate = ""; document.getElementById('calendar-screen').classList.remove('hidden'); document.getElementById('day-screen').classList.add('hidden'); document.getElementById('back-to-cal-btn').classList.add('hidden'); document.getElementById('mode-selector').classList.remove('hidden'); document.querySelector('.month-nav').classList.remove('hidden');
+                document.getElementById('month-reset-btn').classList.remove('hidden'); document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none'); renderCalendar();
+            }
 
-
-               
 
             function changeMonth(diff) {
                 currentViewDate.setMonth(currentViewDate.getMonth() + diff);
@@ -2055,12 +2401,69 @@ function renderCalendar() {
                     });
                 }
             }
+
+            // リモコンをセットアップする関数
+            function setupScrollRemote() {
+                // 二重に作られないようにチェック
+                if (document.getElementById('scroll-remote-control')) return;
+
+                const remote = document.createElement('div');
+                remote.id = 'scroll-remote-control';
+                remote.innerHTML = `
+        <div class="remote-icon">▲</div>
+        <div class="remote-text">SCROLL</div>
+        <div class="remote-icon">▼</div>
+    `;
+                document.body.appendChild(remote);
+
+                // スクロールさせる対象のコンテナ（IDを確認してください）
+                const container = document.getElementById('timeline-scroll-container');
+                let lastY = 0;
+
+                // タッチ開始
+                remote.ontouchstart = (e) => {
+                    lastY = e.touches[0].clientY;
+                    remote.style.background = "rgba(0, 0, 0, 0.7)"; // 触っている間は濃くする
+                    if (navigator.vibrate) navigator.vibrate(10);  // わずかに振動
+                };
+
+                // スライド中
+                remote.ontouchmove = (e) => {
+                    const currentY = e.touches[0].clientY;
+                    const diff = lastY - currentY;
+
+                    // 移動量を3倍にして高速スクロール
+                    container.scrollTop += diff * 3;
+                    lastY = currentY;
+                    e.preventDefault(); // 画面全体が動くのを防止
+                };
+
+                // タッチ終了
+                remote.ontouchend = () => {
+                    remote.style.background = "rgba(0, 0, 0, 0.4)";
+                };
+            }
+
+            // init() の最後、または一番下の実行部分に追加してください
+            setupScrollRemote();
+
+
             // 起動
             init();
 
             // PC用マウス監視
-            window.addEventListener('mousemove', handleMove);
-            window.addEventListener('mouseup', handleEnd); // handleEndに統一
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                lastTouchY = e.clientY; // マウスのY座標を更新
+                updateDragDisplay();    // 表示を更新
+            });
+
+            // マウスを離した時
+            window.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    stopDrag();
+                }
+            });
 
             // スマホ用タッチ監視
             window.addEventListener('touchmove', (e) => {
@@ -2071,8 +2474,33 @@ function renderCalendar() {
                 }
             }, { passive: false });
 
-            window.addEventListener('touchend', handleEnd); // handleEndに統一
-            window.addEventListener('touchcancel', handleEnd);
+            window.addEventListener('touchend', stopDrag);
+            window.addEventListener('touchcancel', stopDrag);
+            // マウスを動かしている最中の処理
+            window.onmousemove = (e) => {
+                if (!isDragging) return;
+                lastTouchY = e.clientY;
+                updateDragDisplay();
+            };
+
+            // マウスを離した時の処理
+            window.onmouseup = () => {
+                if (isDragging) {
+                    stopDrag(); // 指を離したら終了処理
+                }
+            };
+
+            // タッチ操作用も同様に
+            window.ontouchmove = (e) => {
+                if (!isDragging) return;
+                lastTouchY = e.touches[0].clientY;
+                updateDragDisplay();
+            };
+
+            window.ontouchend = () => {
+                stopDrag();
+            };
+
         </script>
 </body>
 

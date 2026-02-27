@@ -561,9 +561,18 @@
         }
 
         .drag-handle {
+            width: 30px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            background: rgba(0, 0, 0, 0.1);
+            color: white;
+            flex-shrink: 0;
             touch-action: none;
-            /* ハンドル部分だけはスクロールさせずドラッグを優先 */
             user-select: none;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         /* ハンドルの角丸を本体に合わせる調整 */

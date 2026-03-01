@@ -226,6 +226,7 @@
             margin-right: 10px;
             /* ★元の設定：右側の余白 */
             /* 親要素の幅に合わせてタイムラインが伸縮するように設定 */
+            touch-action: pan-x;
         }
 
         #timeline {
@@ -577,7 +578,7 @@
         }
 
         .custom-task {
-            touch-action: pan-y;
+            touch-action: none;
             /* ブロック上でも上下スクロールを許可 */
         }
 
@@ -602,27 +603,29 @@
             /* 画面右端のスクロール用ハンドル（リモコン） */
             #scroll-remote-control {
                 position: fixed;
-                right: 0;
-                top: 20%;
-                width: 45px;
-                height: 60%;
+                right: 5px;
+                top: auto;
+                width: 35px;
+                height: 150px;
                 background: rgba(0, 0, 0, 0.4);
                 color: white;
                 z-index: 9999;
-                display: none;
-                /* JSで timeline 表示時のみ show に切り替えるのが理想 */
+                bottom: 100px;
+                background: rgba(0, 0, 0, 0.6);
+
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                border-radius: 20px 0 0 20px;
+                border-radius: 10px;
                 touch-action: none;
                 box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
                 pointer-events: auto;
             }
 
             .remote-icon {
-                font-size: 20px;
-                margin-bottom: 10px;
+                font-size: 24px;
+                margin: 5px 0;
+                ;
             }
 
             .remote-label {
@@ -706,6 +709,11 @@
 
         .custom-task::after {
             bottom: 4px;
+        }
+
+        .custom-task {
+            /* ブラウザ独自のスクロールやズームを無効化して、JSのドラッグを優先させる */
+            touch-action: none;
         }
     </style>
 </head>
@@ -989,6 +997,27 @@
             let isDraggingTask = false; // タスク操作中フラグ
 
             let isDragging = false, dragMode = null, startIdx = null, activeTaskId = null, moveOffset = 0, tempRange = { start: 0, length: 0 }, lastTouchY = 0;
+
+            function toggleTimelineUI(show) {
+                const remote = document.getElementById('scroll-remote-control');
+                if (!remote) return;
+
+                if (show) {
+                    // スマホ画面（768px以下）の時だけ表示する
+                    if (window.innerWidth <= 768) {
+                        remote.style.setProperty('display', 'flex', 'important');
+                    }
+                } else {
+                    remote.style.setProperty('display', 'none', 'important');
+                }
+
+                // ついでに日付移動ボタン(side-prev, side-next)もここで同様に制御
+                const sideBtns = [document.getElementById('side-prev'), document.getElementById('side-next')];
+                sideBtns.forEach(btn => {
+                    if (btn) btn.style.display = show ? 'flex' : 'none';
+                });
+            }
+
             function saveJob() {
                 const id = document.getElementById('edit-job-id').value;
                 const name = document.getElementById('job-name').value;
@@ -996,6 +1025,7 @@
                 const end = document.getElementById('job-end').value;
                 const totalH = parseFloat(document.getElementById('job-total-h').value) || 0;
                 const memo = document.getElementById('job-memo').value;
+                toggleTimelineUI(false);
 
 
                 if (!name) { alert("案件名を入力してください"); return; }
@@ -1088,7 +1118,11 @@
                 document.getElementById('job-menu-overlay').style.display = 'flex';
                 // モーダルを開く処理のどこかに1行追加
                 document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
-
+                const remote = document.getElementById('scroll-remote-control');
+                if (remote) {
+                    remote.style.display = 'none';
+                }
+                toggleTimelineUI(false);
             }
 
 
@@ -1177,6 +1211,10 @@
                     emptyDiv.innerHTML = `<div class="day-num">${i}</div>`;
                     grid.appendChild(emptyDiv);
                 }
+                const remote = document.getElementById('scroll-remote-control');
+                if (remote) {
+                    remote.style.display = 'none';
+                }
             }
 
 
@@ -1220,6 +1258,7 @@
                 const listModal = document.getElementById('job-list-modal-overlay');
                 isEditingFromList = (listModal && listModal.style.display === 'flex');
                 closeModal('job-list-modal-overlay');
+                toggleTimelineUI(false);
 
                 if (id) {
                     const j = appData.longTermJobs.find(x => x.id == id);
@@ -1243,12 +1282,16 @@
                 document.getElementById('job-modal-overlay').style.display = 'flex';
                 // モーダルを開く処理のどこかに1行追加
                 document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
+                const remote = document.getElementById('scroll-remote-control');
+                if (remote) {
+                    remote.style.display = 'none';
+                }
             }
 
             function openShiftModal() {
                 // 既存データ or 基本設定を取得
                 const s = (selectedDate && appData.singleShifts[selectedDate]) ? appData.singleShifts[selectedDate] : appData.defShift;
-
+                toggleTimelineUI(false);
                 // 各入力欄に値をセット
                 document.getElementById('set-shift-start').value = indexToTime(s.start);
                 document.getElementById('set-shift-end').value = indexToTime(s.end);
@@ -1293,6 +1336,7 @@
             function openJobMenuModal() {
                 document.getElementById('job-menu-overlay').style.display = 'flex';
                 // モーダルを開く処理のどこかに1行追加
+                toggleTimelineUI(false);
                 document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
             }
 
@@ -1328,6 +1372,8 @@
                 const commuteIdx = (shift.commuteH || 0) * 4 + Math.floor((shift.commuteM || 0) / 15);
                 const breakS = timeToIndex(shift.breakStart || "12:00");
                 const breakE = timeToIndex(shift.breakEnd || "13:00");
+                toggleTimelineUI(true);
+
 
                 // 96個（24時間分）のマスを生成
                 for (let i = 0; i < 96; i++) {
@@ -1398,14 +1444,19 @@
 
                         // --- テキスト ---
                         const txt = document.createElement("span");
-                        txt.style.cssText = "flex:1; overflow:hidden; white-space:nowrap; pointer-events:none; display:flex; flex-direction:column; line-height:1.1; padding:0 6px;";
+                        txt.style.cssText = "flex:1; overflow:hidden; white-space:nowrap; pointer-events:none; display:flex; flex-direction:column; line-height:1.1; padding:0 40px 0 6px;"; // 右側に40pxの余白
                         const totalMin = t.length * 15;
                         const timeStr = totalMin >= 60 ? `${Math.floor(totalMin / 60)}時間${totalMin % 60}分` : `${totalMin}分`;
                         txt.innerHTML = `<b style="font-size:10px;">${t.name}</b><span style="font-size:8px; opacity:0.8;">${timeStr}</span>`;
 
                         // --- ボタングループ ---
                         const btnGroup = document.createElement('div');
-                        btnGroup.style.display = "flex"; btnGroup.style.gap = "4px"; btnGroup.style.padding = "0 4px";
+                        btnGroup.style.position = "absolute";
+                        btnGroup.style.right = "35px"; // 右端のハンドルの分(30px)＋α 空ける
+                        btnGroup.style.top = "50%";
+                        btnGroup.style.transform = "translateY(-50%)";
+                        btnGroup.style.display = "flex";
+                        btnGroup.style.gap = "4px";
 
                         // 編集ボタン
                         const eb = document.createElement('button');
@@ -1431,6 +1482,43 @@
                             document.getElementById('edit-modal-overlay').style.display = 'flex';
                             document.querySelectorAll('.side-nav').forEach(s => s.style.display = 'none');
                         };
+                        // タスクブロック(el)の中にハンドルを追加
+                        const dragHandle = document.createElement('div');
+                        dragHandle.className = 'task-scroll-handle';
+                        dragHandle.innerHTML = '↕️'; // または ☰
+                        // ドラッグハンドルのスタイル微調整
+                        dragHandle.style.cssText = `
+                            position: absolute;
+                            right: 0;
+                            top: 0;
+                            bottom: 0;
+                            width: 30px;
+                            background: rgba(0,0,0,0.05); /* ほんの少しだけ色をつける */
+                            border-left: 1px solid rgba(0,0,0,0.1);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 16px;
+                            cursor: grab; /* PCで掴めることを示す */
+                            touch-action: none;
+                            z-index: 5;
+           `;
+                        dragHandle.innerHTML = '⋮⋮'; // 縦の三点リーダー風（よくあるドラッグアイコン）
+
+                        // ハンドルを触った時のイベント
+                        dragHandle.ontouchstart = (e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            if (navigator.vibrate) navigator.vibrate(30);
+
+                            // 即座に移動モードでドラッグ開始
+                            startDrag(e, 'move', t.id);
+
+                            // このハンドルを掴んでいる間は、端っこに行ったら自動スクロールを有効にする
+                            isDraggingTaskWithHandle = true;
+                        };
+
+                        el.appendChild(dragHandle);
                         db.ontouchstart = (e) => e.stopPropagation();
 
                         btnGroup.appendChild(eb);
@@ -1447,10 +1535,20 @@
                             const rect = el.getBoundingClientRect();
                             const touchY = e.touches ? e.touches[0].clientY : e.clientY;
                             const offsetY = touchY - rect.top;
+                            let edgeSize = 15; // 基本は15px
 
-                            if (offsetY < 15) {
+                            // 予定が短い（例えば 60px = 45分以下）場合は、端っこを 10px に縮小
+                            if (rect.height < 60) {
+                                edgeSize = 10;
+                            }
+                            // さらに短い（20px = 15分）場合は、上下5pxずつにする
+                            if (rect.height <= 25) {
+                                edgeSize = 5;
+                            }
+
+                            if (offsetY < edgeSize) {
                                 startDrag(e, 'resize-top', t.id);
-                            } else if (offsetY > rect.height - 15) {
+                            } else if (offsetY > rect.height - edgeSize) {
                                 startDrag(e, 'resize-bottom', t.id);
                             } else {
                                 moveOffset = Math.floor(offsetY / 20);
@@ -1517,7 +1615,9 @@
                 if (remote) {
                     remote.style.display = 'flex';
                 }
+
             } // ここで renderTimeline 関数の閉じ
+
 
             // 他の予定と重なっているかチェックする関数
             function isColliding(targetTask) {
@@ -1561,6 +1661,7 @@
                 // 2. タイムラインの基準位置を取得
                 const tl = document.getElementById('timeline');
                 const tlRect = tl.getBoundingClientRect();
+                const touchY = lastTouchY;
 
                 // 3. マウスの現在地(lastTouchY)から、タイムライン上の何マス目か計算
                 const relativeY = lastTouchY - tlRect.top;
@@ -1633,28 +1734,39 @@
                     }
 
                 }
+                // ★自動スクロールのロジック
+                const container = document.getElementById('timeline-container');
+                const rect = container.getBoundingClientRect();
+
+                // 指の位置が画面の上端から50px以内なら上にスクロール
+                if (lastTouchY < rect.top + 50) {
+                    container.scrollTop -= 10;
+                }
+                // 下端から50px以内なら下にスクロール
+                else if (lastTouchY > rect.bottom - 50) {
+                    container.scrollTop += 10;
+                }
+
+
+
                 handleAutoScroll(lastTouchY);
             }
 
-            function handleAutoScroll(clientY) {
+            function handleAutoScroll(y) {
+                if (!isDragging) return;
+
                 const container = document.getElementById('timeline-container');
-                if (!container) return;
-
                 const rect = container.getBoundingClientRect();
-                const threshold = 80; // 判定エリアをさらに広げる
+                const threshold = 50; // 端から何pxでスクロール開始するか
 
-                // 【上端判定】
-                if (clientY < rect.top + threshold) {
-                    console.log("上スクロール条件一致！");
-                    startAutoScroll(-15);
-                }
-                // 【下端判定】 rect.bottom が怪しいので、ブラウザの画面下端 (window.innerHeight) も考慮する
-                else if (clientY > rect.bottom - threshold || clientY > window.innerHeight - threshold) {
-                    console.log("下スクロール条件一致！");
-                    startAutoScroll(15);
-                }
-                else {
-                    stopAutoScroll();
+                if (y < rect.top + threshold) {
+                    // 上端に近いとき
+                    const diff = rect.top + threshold - y;
+                    container.scrollTop -= diff * 0.2; // 近いほど速く
+                } else if (y > rect.bottom - threshold) {
+                    // 下端に近いとき
+                    const diff = y - (rect.bottom - threshold);
+                    container.scrollTop += diff * 0.2;
                 }
             }
 
@@ -1885,13 +1997,24 @@
             function openSleepModal() {
                 const s = (selectedDate && appData.singleSleeps[selectedDate]) ? appData.singleSleeps[selectedDate] : appData.defSleep; document.getElementById('sleep-start').value = indexToTime(s.start); // モーダルを開く処理のどこかに1行追加
                 document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none'); document.getElementById('sleep-end').value = indexToTime(s.end); document.getElementById('batch-sleep-area').className = selectedDate ? 'hidden' : ''; document.getElementById('save-day-sleep-btn').className = selectedDate ? 'save-btn' : 'hidden'; document.getElementById('sleep-modal-overlay').style.display = 'flex';
+                const remote = document.getElementById('scroll-remote-control');
+                if (remote) {
+                    remote.style.display = 'none';
+                }
+                toggleTimelineUI(false);
+
             }
             function openShiftModal() {
                 const s = (selectedDate && appData.singleShifts[selectedDate]) ? appData.singleShifts[selectedDate] : appData.defShift; document.getElementById('set-shift-start').value = indexToTime(s.start); document.getElementById('set-shift-end').value = indexToTime(s.end); document.getElementById('batch-shift-area').className = selectedDate ? 'hidden' : ''; document.getElementById('save-day-shift-btn').className = selectedDate ? 'save-btn' : 'hidden'; // モーダルを開く処理のどこかに1行追加
                 document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none'); document.getElementById('shift-modal-overlay').style.display = 'flex';
+                const remote = document.getElementById('scroll-remote-control');
+                if (remote) {
+                    remote.style.display = 'none';
+                }
+                toggleTimelineUI(false);
             }
 
-            function openJumpModal() { const ys = document.getElementById('jump-year'), ms = document.getElementById('jump-month'); ys.innerHTML = ""; ms.innerHTML = ""; const curY = new Date().getFullYear(); for (let y = curY - 1; y <= curY + 3; y++) ys.innerHTML += `<option value="${y}" ${y == currentViewDate.getFullYear() ? 'selected' : ''}>${y}年</option>`; for (let m = 0; m < 12; m++) ms.innerHTML += `<option value="${m}" ${m == currentViewDate.getMonth() ? 'selected' : ''}>${m + 1}月</option>`; document.getElementById('jump-modal-overlay').style.display = 'flex'; }
+            function openJumpModal() { toggleTimelineUI(false); const ys = document.getElementById('jump-year'), ms = document.getElementById('jump-month'); ys.innerHTML = ""; ms.innerHTML = ""; const curY = new Date().getFullYear(); for (let y = curY - 1; y <= curY + 3; y++) ys.innerHTML += `<option value="${y}" ${y == currentViewDate.getFullYear() ? 'selected' : ''}>${y}年</option>`; for (let m = 0; m < 12; m++) ms.innerHTML += `<option value="${m}" ${m == currentViewDate.getMonth() ? 'selected' : ''}>${m + 1}月</option>`; document.getElementById('jump-modal-overlay').style.display = 'flex'; }
             function jumpToMonth() {
                 currentViewDate.setFullYear(document.getElementById('jump-year').value); currentViewDate.setMonth(document.getElementById('jump-month').value); renderCalendar(); closeModal('jump-modal-overlay');// モーダルを開く処理のどこかに1行追加
                 document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
@@ -1971,6 +2094,10 @@
                         document.getElementById('task-name').value = "";
                         document.getElementById('modal-overlay').style.display = 'flex';
                         document.querySelectorAll('.side-nav').forEach(el => el.style.display = 'none');
+                        const remote = document.getElementById('scroll-remote-control');
+                        if (remote) {
+                            remote.style.display = 'none';
+                        }
                     }
                 } else if (dragMode === 'move') {
                     const pre = document.querySelector('.move-preview');
@@ -2224,6 +2351,7 @@
                 const container = document.getElementById('all-job-list-container');
                 container.innerHTML = "";
                 const sortedJobs = [...appData.longTermJobs].sort((a, b) => (a.isDeleted === b.isDeleted) ? 0 : a.isDeleted ? 1 : -1);
+                toggleTimelineUI(false);
 
                 sortedJobs.forEach(job => {
                     const div = document.createElement('div');
@@ -2253,6 +2381,7 @@
 
             // 履歴から完全に削除
             function hardDeleteJob(id) {
+                toggleTimelineUI(false);
                 if (confirm("この案件を履歴から完全に削除しますか？")) {
                     appData.longTermJobs = appData.longTermJobs.filter(j => j.id !== id);
                     saveData();
@@ -2454,6 +2583,7 @@
             // PC用マウス監視
             window.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
+                handleAutoScroll(e.clientY);
                 lastTouchY = e.clientY; // マウスのY座標を更新
                 updateDragDisplay();    // 表示を更新
             });
@@ -2466,12 +2596,19 @@
             });
 
             // スマホ用タッチ監視
+            // windowのtouchmoveイベント内（既存の処理がある場所に追記）
+            // windowの touchmove イベント（ドラッグ中の処理）を探して、中身を更新
             window.addEventListener('touchmove', (e) => {
-                if (isDragging) {
-                    // ドラッグ中は画面がスクロールしないように固定
-                    if (e.cancelable) e.preventDefault();
-                    handleMove(e);
-                }
+                if (!isDragging) return;
+
+                const touch = e.touches[0];
+                lastTouchY = touch.clientY; // 座標を常に更新
+
+                // ★重要：スマホでのオートスクロール判定を実行
+                handleAutoScroll(lastTouchY);
+
+                // ドラッグ中の描画更新（すでにコードにあるはず）
+                updateDragDisplay();
             }, { passive: false });
 
             window.addEventListener('touchend', stopDrag);
@@ -2500,6 +2637,31 @@
             window.ontouchend = () => {
                 stopDrag();
             };
+
+            // リモコンボタンの設定関数
+            const setupRemoteBtn = (btn, speed) => {
+                if (!btn) return;
+
+                const start = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    startAutoScroll(speed);
+                };
+
+                // touchstartだけで即座に反応させる
+                btn.addEventListener('touchstart', start, { passive: false });
+                btn.addEventListener('touchend', stopAutoScroll);
+
+                // PC用
+                btn.addEventListener('mousedown', start);
+                btn.addEventListener('mouseup', stopAutoScroll);
+            };
+
+            // HTMLの読み込みを待って実行
+            document.addEventListener('DOMContentLoaded', () => {
+                setupRemoteBtn(document.getElementById('remote-up'), -15);
+                setupRemoteBtn(document.getElementById('remote-down'), 15);
+            });
 
         </script>
 </body>

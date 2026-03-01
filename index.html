@@ -1444,19 +1444,21 @@
 
                         // --- テキスト ---
                         const txt = document.createElement("span");
-                        txt.style.cssText = "flex:1; overflow:hidden; white-space:nowrap; pointer-events:none; display:flex; flex-direction:column; line-height:1.1; padding:0 40px 0 6px;"; // 右側に40pxの余白
+                        txt.style.cssText = "flex:1; overflow:hidden; white-space:nowrap; pointer-events:none; display:flex; flex-direction:column; line-height:1.1; padding-right:80px;"; // 右側に40pxの余白
                         const totalMin = t.length * 15;
                         const timeStr = totalMin >= 60 ? `${Math.floor(totalMin / 60)}時間${totalMin % 60}分` : `${totalMin}分`;
                         txt.innerHTML = `<b style="font-size:10px;">${t.name}</b><span style="font-size:8px; opacity:0.8;">${timeStr}</span>`;
 
                         // --- ボタングループ ---
                         const btnGroup = document.createElement('div');
+                        
                         btnGroup.style.position = "absolute";
-                        btnGroup.style.right = "35px"; // 右端のハンドルの分(30px)＋α 空ける
+                        btnGroup.style.right = "40px"; // 右端のハンドルの分(30px)＋α 空ける
                         btnGroup.style.top = "50%";
                         btnGroup.style.transform = "translateY(-50%)";
                         btnGroup.style.display = "flex";
-                        btnGroup.style.gap = "4px";
+                        btnGroup.style.gap = "5px";
+                        btnGroup.style.zIndex = "10";
 
                         // 編集ボタン
                         const eb = document.createElement('button');
@@ -1752,21 +1754,27 @@
                 handleAutoScroll(lastTouchY);
             }
 
-            function handleAutoScroll(y) {
+            function handleAutoScroll(clientY) {
                 if (!isDragging) return;
 
                 const container = document.getElementById('timeline-container');
                 const rect = container.getBoundingClientRect();
-                const threshold = 50; // 端から何pxでスクロール開始するか
 
-                if (y < rect.top + threshold) {
-                    // 上端に近いとき
-                    const diff = rect.top + threshold - y;
-                    container.scrollTop -= diff * 0.2; // 近いほど速く
-                } else if (y > rect.bottom - threshold) {
-                    // 下端に近いとき
-                    const diff = y - (rect.bottom - threshold);
-                    container.scrollTop += diff * 0.2;
+                // 判定エリア（端から80pxくらいに広げると反応しやすくなります）
+                const threshold = 80;
+
+                // コンテナの上端・下端からの距離を計算
+                const distTop = clientY - rect.top;
+                const distBottom = rect.bottom - clientY;
+
+                if (distTop < threshold) {
+                    // 上端付近：上にスクロール
+                    const speed = Math.max(5, (threshold - distTop) * 0.5);
+                    container.scrollTop -= speed;
+                } else if (distBottom < threshold) {
+                    // 下端付近：下にスクロール
+                    const speed = Math.max(5, (threshold - distBottom) * 0.5);
+                    container.scrollTop += speed;
                 }
             }
 
@@ -2642,20 +2650,24 @@
             const setupRemoteBtn = (btn, speed) => {
                 if (!btn) return;
 
-                const start = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                const startAction = (e) => {
+                    e.preventDefault(); // 👈 これが超重要！ブラウザの標準挙動を殺します
+                    e.stopPropagation(); // 👈 親要素への伝播を止めます
                     startAutoScroll(speed);
                 };
 
-                // touchstartだけで即座に反応させる
-                btn.addEventListener('touchstart', start, { passive: false });
-                btn.addEventListener('touchend', stopAutoScroll);
+                // スマホ用
+                btn.addEventListener('touchstart', startAction, { passive: false });
+                btn.addEventListener('touchend', stopAutoScroll, { passive: false });
 
                 // PC用
-                btn.addEventListener('mousedown', start);
+                btn.addEventListener('mousedown', startAction);
                 btn.addEventListener('mouseup', stopAutoScroll);
             };
+
+            // リモコンのセットアップ（IDが正しいか再確認してくださいね）
+            setupRemoteBtn(document.getElementById('remote-up'), -15);
+            setupRemoteBtn(document.getElementById('remote-down'), 15);
 
             // HTMLの読み込みを待って実行
             document.addEventListener('DOMContentLoaded', () => {

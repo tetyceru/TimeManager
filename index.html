@@ -1451,7 +1451,7 @@
 
                         // --- ボタングループ ---
                         const btnGroup = document.createElement('div');
-                        
+
                         btnGroup.style.position = "absolute";
                         btnGroup.style.right = "40px"; // 右端のハンドルの分(30px)＋α 空ける
                         btnGroup.style.top = "50%";
@@ -1613,6 +1613,7 @@
                 } // ここで for ループの閉じ
 
                 if (typeof updateFreeTime === 'function') updateFreeTime();
+                setupScrollRemote();
                 const remote = document.getElementById('scroll-remote-control');
                 if (remote) {
                     remote.style.display = 'flex';
@@ -1758,22 +1759,19 @@
                 if (!isDragging) return;
 
                 const container = document.getElementById('timeline-container');
-                const rect = container.getBoundingClientRect();
+                if (!container) return;
 
-                // 判定エリア（端から80pxくらいに広げると反応しやすくなります）
+                const rect = container.getBoundingClientRect();
                 const threshold = 80;
 
-                // コンテナの上端・下端からの距離を計算
                 const distTop = clientY - rect.top;
                 const distBottom = rect.bottom - clientY;
 
-                if (distTop < threshold) {
-                    // 上端付近：上にスクロール
-                    const speed = Math.max(5, (threshold - distTop) * 0.5);
+                if (distTop < threshold && distTop > -50) { // 画面外すぎないかチェック
+                    const speed = Math.max(8, (threshold - distTop) * 0.6);
                     container.scrollTop -= speed;
-                } else if (distBottom < threshold) {
-                    // 下端付近：下にスクロール
-                    const speed = Math.max(5, (threshold - distBottom) * 0.5);
+                } else if (distBottom < threshold && distBottom > -50) {
+                    const speed = Math.max(8, (threshold - distBottom) * 0.6);
                     container.scrollTop += speed;
                 }
             }
@@ -2541,44 +2539,73 @@
 
             // リモコンをセットアップする関数
             function setupScrollRemote() {
-                // 二重に作られないようにチェック
+                // 1. 二重生成防止
                 if (document.getElementById('scroll-remote-control')) return;
 
+                // 2. リモコン要素の作成
                 const remote = document.createElement('div');
                 remote.id = 'scroll-remote-control';
                 remote.innerHTML = `
-        <div class="remote-icon">▲</div>
+        <div class="remote-icon" id="remote-up">▲</div>
         <div class="remote-text">SCROLL</div>
-        <div class="remote-icon">▼</div>
+        <div class="remote-icon" id="remote-down">▼</div>
     `;
                 document.body.appendChild(remote);
 
-                // スクロールさせる対象のコンテナ（IDを確認してください）
-                const container = document.getElementById('timeline-scroll-container');
+                // 3. スクロール対象のコンテナ（IDを timeline-container に統一）
+                const container = document.getElementById('timeline-container');
                 let lastY = 0;
 
-                // タッチ開始
-                remote.ontouchstart = (e) => {
+                // --- A: スライド操作（リモコンをなぞって動かす） ---
+                remote.addEventListener('touchstart', (e) => {
                     lastY = e.touches[0].clientY;
-                    remote.style.background = "rgba(0, 0, 0, 0.7)"; // 触っている間は濃くする
-                    if (navigator.vibrate) navigator.vibrate(10);  // わずかに振動
-                };
+                    remote.style.background = "rgba(0, 0, 0, 0.7)";
+                    if (navigator.vibrate) navigator.vibrate(10);
+                }, { passive: false });
 
-                // スライド中
-                remote.ontouchmove = (e) => {
+                remote.addEventListener('touchmove', (e) => {
+                    if (!container) return;
                     const currentY = e.touches[0].clientY;
                     const diff = lastY - currentY;
 
-                    // 移動量を3倍にして高速スクロール
-                    container.scrollTop += diff * 3;
+                    // 移動量を調整（なぞった分だけスルスル動く）
+                    container.scrollTop += diff * 2.5;
                     lastY = currentY;
-                    e.preventDefault(); // 画面全体が動くのを防止
-                };
+                    e.preventDefault();
+                }, { passive: false });
 
-                // タッチ終了
-                remote.ontouchend = () => {
+                remote.addEventListener('touchend', () => {
                     remote.style.background = "rgba(0, 0, 0, 0.4)";
-                };
+                    stopAutoScroll(); // Bの連打モードも止める
+                });
+
+                // --- B: ボタン操作（▲▼を押し続けて動かす） ---
+                const upBtn = document.getElementById('remote-up');
+                const downBtn = document.getElementById('remote-down');
+
+                if (upBtn && downBtn) {
+                    // 上ボタン
+                    upBtn.addEventListener('touchstart', (e) => {
+                        e.stopPropagation(); // スライド操作と混ざらないように
+                        startAutoScroll(-15);
+                    }, { passive: false });
+
+                    // 下ボタン
+                    downBtn.addEventListener('touchstart', (e) => {
+                        e.stopPropagation();
+                        startAutoScroll(15);
+                    }, { passive: false });
+
+                    // 離したら止める（PC用も含む）
+                    [upBtn, downBtn].forEach(btn => {
+                        btn.addEventListener('touchend', stopAutoScroll);
+                        btn.addEventListener('mousedown', (e) => {
+                            const speed = e.target.id === 'remote-up' ? -15 : 15;
+                            startAutoScroll(speed);
+                        });
+                        btn.addEventListener('mouseup', stopAutoScroll);
+                    });
+                }
             }
 
             // init() の最後、または一番下の実行部分に追加してください
@@ -2599,52 +2626,26 @@
             // マウスを離した時
             window.addEventListener('mouseup', () => {
                 if (isDragging) {
+                    stopAutoScroll();
                     stopDrag();
                 }
             });
 
             // スマホ用タッチ監視
-            // windowのtouchmoveイベント内（既存の処理がある場所に追記）
-            // windowの touchmove イベント（ドラッグ中の処理）を探して、中身を更新
             window.addEventListener('touchmove', (e) => {
                 if (!isDragging) return;
-
                 const touch = e.touches[0];
-                lastTouchY = touch.clientY; // 座標を常に更新
-
-                // ★重要：スマホでのオートスクロール判定を実行
-                handleAutoScroll(lastTouchY);
-
-                // ドラッグ中の描画更新（すでにコードにあるはず）
+                lastTouchY = touch.clientY;
+                handleAutoScroll(lastTouchY); // 自動スクロール判定
                 updateDragDisplay();
             }, { passive: false });
 
-            window.addEventListener('touchend', stopDrag);
-            window.addEventListener('touchcancel', stopDrag);
-            // マウスを動かしている最中の処理
-            window.onmousemove = (e) => {
-                if (!isDragging) return;
-                lastTouchY = e.clientY;
-                updateDragDisplay();
-            };
-
-            // マウスを離した時の処理
-            window.onmouseup = () => {
-                if (isDragging) {
-                    stopDrag(); // 指を離したら終了処理
-                }
-            };
-
-            // タッチ操作用も同様に
-            window.ontouchmove = (e) => {
-                if (!isDragging) return;
-                lastTouchY = e.touches[0].clientY;
-                updateDragDisplay();
-            };
-
-            window.ontouchend = () => {
+            // --- スマホ用：タッチ終了 ---
+            window.addEventListener('touchend', () => {
+                stopAutoScroll(); // リモコン停止用
                 stopDrag();
-            };
+            });
+
 
             // リモコンボタンの設定関数
             const setupRemoteBtn = (btn, speed) => {
@@ -2665,15 +2666,11 @@
                 btn.addEventListener('mouseup', stopAutoScroll);
             };
 
-            // リモコンのセットアップ（IDが正しいか再確認してくださいね）
-            setupRemoteBtn(document.getElementById('remote-up'), -15);
-            setupRemoteBtn(document.getElementById('remote-down'), 15);
-
-            // HTMLの読み込みを待って実行
-            document.addEventListener('DOMContentLoaded', () => {
-                setupRemoteBtn(document.getElementById('remote-up'), -15);
-                setupRemoteBtn(document.getElementById('remote-down'), 15);
-            });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupScrollRemote);
+            } else {
+                setupScrollRemote();
+            }
 
         </script>
 </body>

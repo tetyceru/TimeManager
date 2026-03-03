@@ -614,7 +614,7 @@
                 z-index: 9999;
                 bottom: 100px;
                 background: rgba(0, 0, 0, 0.6);
-                display:flex;
+                display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
@@ -1665,13 +1665,13 @@
 
                 // 2. タイムラインの基準位置を取得
                 const tl = document.getElementById('timeline');
+                const container = document.getElementById('timeline-container');
                 const tlRect = tl.getBoundingClientRect();
-                const touchY = lastTouchY;
 
                 // 3. マウスの現在地(lastTouchY)から、タイムライン上の何マス目か計算
                 const relativeY = lastTouchY - tlRect.top;
                 let i = Math.floor(relativeY / 20);
-                i = Math.max(0, Math.min(95, i)); // 0〜95の範囲に収める
+                i = Math.max(0, Math.min(95, i));
 
                 let t = null;
                 if (dragMode === 'move' || dragMode === 'resize-top' || dragMode === 'resize-bottom') {
@@ -1740,7 +1740,7 @@
 
                 }
                 // ★自動スクロールのロジック
-                const container = document.getElementById('timeline-container');
+
                 const rect = container.getBoundingClientRect();
 
                 handleAutoScroll(lastTouchY);
@@ -1748,25 +1748,25 @@
 
             // 移動・作成中の座標をチェックして、端にいたらスクロールを開始する関数
             function handleAutoScroll(clientY) {
-    if (!isDragging) return;
+                if (!isDragging) return;
 
-    const threshold = 70; // 反応する範囲（px）
-    const upSpeed = -10;  // 上への速度
-    const downSpeed = 8;  // 下への速度（少し遅めに設定）
+                const threshold = 70; // 反応する範囲（px）
+                const upSpeed = -10;  // 上への速度
+                const downSpeed = 8;  // 下への速度（少し遅めに設定）
 
-    // 1. 上端判定
-    if (clientY < threshold) {
-        startAutoScroll(upSpeed);
-    } 
-    // 2. 下端判定（画面の高さから判定）
-    else if (clientY > window.innerHeight - threshold) {
-        startAutoScroll(downSpeed);
-    } 
-    // 3. 中央にいる時は即停止
-    else {
-        stopAutoScroll();
-    }
-}
+                // 1. 上端判定
+                if (clientY < threshold) {
+                    startAutoScroll(upSpeed);
+                }
+                // 2. 下端判定（画面の高さから判定）
+                else if (clientY > window.innerHeight - threshold) {
+                    startAutoScroll(downSpeed);
+                }
+                // 3. 中央にいる時は即停止
+                else {
+                    stopAutoScroll();
+                }
+            }
 
 
             // プレビュー表示用の共通パーツ（重複を減らすため）
@@ -1818,28 +1818,28 @@
 
             // --- オートスクロール関連 ---
             function startAutoScroll(speed) {
-    // すでに同じ方向にスクロール中なら何もしない
-    if (currentScrollSpeed === speed) return;
-    
-    // 違う方向、または停止中なら一旦クリア
-    stopAutoScroll();
-    
-    currentScrollSpeed = speed;
-    const container = document.getElementById('timeline-container');
+                // すでに同じ方向にスクロール中なら何もしない
+                if (currentScrollSpeed === speed) return;
 
-    scrollInterval = setInterval(() => {
-        if (!container) return;
+                // 違う方向、または停止中なら一旦クリア
+                stopAutoScroll();
 
-        // スクロール実行
-        container.scrollTop += speed;
+                currentScrollSpeed = speed;
+                const container = document.getElementById('timeline-container');
 
-        // 【重要】スクロールした分、内部の計算用座標(startYなど)を調整しないと
-        // 予定ブロックが指からズレていったり、ガタガタ揺れる原因になります
-        // startY += speed; // 必要に応じてここを調整
+                scrollInterval = setInterval(() => {
+                    if (!container) return;
 
-        updateDragDisplay(); // 描画更新
-    }, 20);
-}
+                    // スクロール実行
+                    container.scrollTop += speed;
+
+                    // 【重要】スクロールした分、内部の計算用座標(startYなど)を調整しないと
+                    // 予定ブロックが指からズレていったり、ガタガタ揺れる原因になります
+                    // startY += speed; // 必要に応じてここを調整
+
+                    updateDragDisplay(); // 描画更新
+                }, 20);
+            }
 
             function stopAutoScroll() {
                 if (scrollInterval) {
@@ -1863,7 +1863,7 @@
                 const rect = container.getBoundingClientRect();
                 startY = clientY - rect.top + container.scrollTop;
 
-document.body.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden';
                 if (mode === 'create') {
                     startIdx = Math.floor(y / 20); // startIdxを更新
                     updateGuide(startIdx, startIdx);
@@ -1875,7 +1875,7 @@ document.body.style.overflow = 'hidden';
             const stopDrag = () => {
                 // 1. まず何よりも先にスクロールを止める
                 stopAutoScroll();
-document.body.style.overflow = '';
+                document.body.style.overflow = '';
                 // ドラッグ中でなければ終了
                 if (!isDragging) return;
 

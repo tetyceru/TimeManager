@@ -1979,6 +1979,7 @@
                 updateJobArea();
                 updateFreeTime();
                 renderCalendar();
+                renderTimeline();
             }
 
 
@@ -1999,6 +2000,7 @@
                 updateJobArea();
                 updateFreeTime();
                 renderCalendar(); // カレンダーの表示も更新
+                rendertimeline();
             }
 
             function openSleepModal() {
@@ -2394,7 +2396,7 @@
                     saveData();
                     openJobList();
                     renderCalendar();
-
+                    rendertimeline();
                 }
             }
 
@@ -2677,3 +2679,4 @@
 </body>
 
 </html>
+

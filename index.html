@@ -221,28 +221,25 @@
         /* タイムラインを囲む親玉（スクロールする枠） */
         #timeline-container {
             position: relative;
-            margin-left: 50px;
-            /* ★元の設定：左側にスペースを空ける */
+            /* margin-left を 0 にして、padding でスペースを作るのがコツです */
+            margin-left: 10px;
             margin-right: 10px;
-            /* ★元の設定：右側の余白 */
-            /* 親要素の幅に合わせてタイムラインが伸縮するように設定 */
-            touch-action: pan-x;
             height: 70vh;
             overflow-y: auto;
-            padding-left: 50px;
+            /* ★ここに広めのスペース(60px)を確保して、タイムラインを右に追い出す */
+            padding-left: 60px !important;
             -webkit-overflow-scrolling: touch;
         }
 
+        /* 2. タイムライン（白いエリア）自体の設定 */
         #timeline {
             width: 100%;
+            /* これで確保した padding 以外の場所に収まります */
             height: 1920px !important;
             border: 1px solid #ccc;
             position: relative;
             background: #fff;
-            touch-action: none;
             box-sizing: border-box;
-            overflow: visible;
-            /* ラベルを外に出すために必須 */
         }
 
         .time-slot {
@@ -255,15 +252,14 @@
         /* 時刻ラベルの基本スタイル */
         .time-label {
             position: absolute;
-            left: 0px;
-            /* margin-leftの50pxの中にピッタリ収まる */
+            /* ★containerの左端から 5px の位置に置く。これで重なりません */
+            left: 5px !important;
             width: 45px;
             text-align: right;
             font-size: 11px;
             color: #888;
             font-weight: bold;
             z-index: 10;
-            /* topとline-heightはJS側で精密に制御します */
             pointer-events: none;
         }
 
@@ -1365,9 +1361,13 @@
 
             function renderTimeline() {
                 const tl = document.getElementById("timeline");
-                if (!tl) return;
+                const container = document.getElementById("timeline-container"); // containerを取得
+                if (!tl || !container) return;
 
                 tl.innerHTML = ""; // 一旦リセット
+                const oldLabels = container.querySelectorAll('.time-label');
+                oldLabels.forEach(l => l.remove());
+
                 const tasks = appData.tasks[selectedDate] || [];
                 const shift = appData.singleShifts[selectedDate] || appData.defShift;
                 const sleep = appData.singleSleeps[selectedDate] || appData.defSleep;
@@ -1395,25 +1395,26 @@
                     if (i % 4 === 0) {
                         const label = document.createElement("div");
                         label.className = "time-label";
+                        label.textContent = Math.floor(i / 4) + ":00";
 
                         // ★元の位置設定
                         label.style.position = "absolute";
-                        label.style.left = "-50px";
+                        label.style.left = "5px";  // containerの左端からの位置（自由に調整OK！）
                         label.style.width = "45px";
                         label.style.textAlign = "right";
 
                         // ★微調整：線の真横に文字が来るように
-                        label.style.top = "-10px";
+                        label.style.top = (i * 20 - 10) + "px";
                         label.style.lineHeight = "20px";
 
-                        label.style.fontSize = "11px";
+                        label.style.fontSize = "13px";
                         label.style.color = "#888";
                         label.style.fontWeight = "bold";
                         label.style.pointerEvents = "none";
                         label.style.zIndex = "20"; // 睡眠・仕事背景より前に出す
 
                         label.textContent = Math.floor(i / 4) + ":00";
-                        slot.appendChild(label);
+                        container.appendChild(label);
                     }
 
                     tl.appendChild(slot);
@@ -1830,7 +1831,7 @@
 
                 scrollInterval = setInterval(() => {
                     if (!container) return;
-console.log(container.scrollTop);
+                    console.log(container.scrollTop);
                     // スクロール実行
                     container.scrollTop += speed;
 

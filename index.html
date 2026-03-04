@@ -1766,22 +1766,20 @@
 
             // 移動・作成中の座標をチェックして、端にいたらスクロールを開始する関数
             function handleAutoScroll(clientY) {
-                if (!isDragging) return;
+                if (!isDragging || dragMode === 'create') {
+                    stopAutoScroll();
+                    return;
+                }
 
-                const threshold = 70; // 反応する範囲（px）
-                const upSpeed = -10;  // 上への速度
-                const downSpeed = 8;  // 下への速度（少し遅めに設定）
+                const threshold = 70;
+                const upSpeed = -10;
+                const downSpeed = 8;
 
-                // 1. 上端判定
                 if (clientY < threshold) {
                     startAutoScroll(upSpeed);
-                }
-                // 2. 下端判定（画面の高さから判定）
-                else if (clientY > window.innerHeight - threshold) {
+                } else if (clientY > window.innerHeight - threshold) {
                     startAutoScroll(downSpeed);
-                }
-                // 3. 中央にいる時は即停止
-                else {
+                } else {
                     stopAutoScroll();
                 }
             }
@@ -2408,27 +2406,29 @@
             function hardDeleteJob(id) {
                 toggleTimelineUI(false);
                 const targetId = Number(id);
+                // 削除対象の案件名を特定する
+                const targetJob = appData.longTermJobs.find(j => Number(j.id) === targetId);
+                if (!targetJob) return;
+                const targetName = targetJob.name; // 消すべき名前（例：「A案件」）
 
-                if (confirm("この案件を履歴から完全に削除しますか？")) {
+                if (confirm(`「${targetName}」を履歴とタイムラインから完全に削除しますか？`)) {
+                    // 1. 案件リストから削除
                     appData.longTermJobs = appData.longTermJobs.filter(j => Number(j.id) !== targetId);
 
-                    // 2. 全ての日付（appData.tasks）の中をスキャンして、この案件の予定を消去
+                    // 2. 全日程の予定を「名前」でスキャンして削除
                     if (appData.tasks) {
                         Object.keys(appData.tasks).forEach(date => {
                             appData.tasks[date] = appData.tasks[date].filter(task => {
-                                // taskが持っているあらゆる ID プロパティをチェックする
-                                const tJobId = task.jobId || task.Id || task.id;
-                                return Number(tJobId) !== targetId;
+                                // 名前が一致するものを消去（完全に一致しないものだけ残す）
+                                return task.name !== targetName;
                             });
                         });
                     }
-                    saveData();
-                    setTimeout(() => {
-                        openJobList();
-                        renderCalendar();
-                        renderTimeline();
-                    }, 10);
 
+                    saveData();
+                    openJobList();
+                    renderCalendar();
+                    renderTimeline();
                 }
             }
 

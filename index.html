@@ -240,6 +240,10 @@
             position: relative;
             background: #fff;
             box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .time-slot {
@@ -1667,12 +1671,18 @@
 
                 // 2. タイムラインの基準位置を取得
                 const tl = document.getElementById('timeline');
+                tl.addEventListener('touchstart', (e) => {
+                    // 予定作成（ドラッグ）が始まったら、画面全体のスクロールを禁止する
+                    if (e.target.id === 'timeline' || e.target.classList.contains('time-slot')) {
+                        // e.preventDefault(); // これを入れるとブラウザのスクロールが止まります
+                    }
+                }, { passive: false });
                 const container = document.getElementById('timeline-container');
                 const tlRect = tl.getBoundingClientRect();
 
                 // 3. マウスの現在地(lastTouchY)から、タイムライン上の何マス目か計算
                 const relativeY = lastTouchY - tlRect.top;
-                let i = Math.floor(relativeY / 20);
+                let i = Math.round(relativeY / 20);
                 i = Math.max(0, Math.min(95, i));
 
                 let t = null;
@@ -1744,8 +1754,11 @@
                 // ★自動スクロールのロジック
 
                 const rect = container.getBoundingClientRect();
-
-                handleAutoScroll(lastTouchY);
+                if (dragMode === 'create') {
+                    stopAutoScroll(); // ドラッグ作成中はスクロールを止める
+                } else {
+                    handleAutoScroll(lastTouchY);
+                }
             }
 
             // 移動・作成中の座標をチェックして、端にいたらスクロールを開始する関数
@@ -1999,8 +2012,8 @@
                 saveData();
                 updateJobArea();
                 updateFreeTime();
-                renderCalendar(); // カレンダーの表示も更新
-                rendertimeline();
+                renderCalendar();
+                renderTimeline();
             }
 
             function openSleepModal() {
@@ -2391,12 +2404,26 @@
             // 履歴から完全に削除
             function hardDeleteJob(id) {
                 toggleTimelineUI(false);
+                const targetId = Number(id);
+
                 if (confirm("この案件を履歴から完全に削除しますか？")) {
-                    appData.longTermJobs = appData.longTermJobs.filter(j => j.id !== id);
+                    appData.longTermJobs = appData.longTermJobs.filter(j => Number(j.id) !== targetId);
+
+                    // 2. 全ての日付（appData.tasks）の中をスキャンして、この案件の予定を消去
+                    if (appData.tasks) {
+                        Object.keys(appData.tasks).forEach(date => {
+                            // ここで task.jobId が案件の id と一致するものを消します
+                            appData.tasks[date] = appData.tasks[date].filter(task => {
+                                // もし消えなかったら、ここを task.id !== targetId に変えてみてね
+                                return Number(task.jobId) !== targetId;
+                            });
+                        });
+                    }
                     saveData();
                     openJobList();
                     renderCalendar();
-                    rendertimeline();
+                    renderTimeline();
+
                 }
             }
 
@@ -2679,4 +2706,3 @@
 </body>
 
 </html>
-

@@ -240,7 +240,7 @@
             position: relative;
             background: #fff;
             box-sizing: border-box;
-            touch-action: none;
+            touch-action: none !important;
             user-select: none;
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -1753,10 +1753,13 @@
                 }
                 // ★自動スクロールのロジック
 
-                const rect = container.getBoundingClientRect();
+                const isRemoteActive = (dragMode === null && !isDragging); // リモコン操作中か？
+
                 if (dragMode === 'create') {
-                    stopAutoScroll(); // ドラッグ作成中はスクロールを止める
-                } else {
+                    // 予定作成中は、自動スクロールを強制停止
+                    stopAutoScroll();
+                } else if (isDragging) {
+                    // 移動やリサイズ中も、一旦止めて様子を見るのが安全
                     handleAutoScroll(lastTouchY);
                 }
             }
@@ -2412,17 +2415,19 @@
                     // 2. 全ての日付（appData.tasks）の中をスキャンして、この案件の予定を消去
                     if (appData.tasks) {
                         Object.keys(appData.tasks).forEach(date => {
-                            // ここで task.jobId が案件の id と一致するものを消します
                             appData.tasks[date] = appData.tasks[date].filter(task => {
-                                // もし消えなかったら、ここを task.id !== targetId に変えてみてね
-                                return Number(task.jobId) !== targetId;
+                                // taskが持っているあらゆる ID プロパティをチェックする
+                                const tJobId = task.jobId || task.Id || task.id;
+                                return Number(tJobId) !== targetId;
                             });
                         });
                     }
                     saveData();
-                    openJobList();
-                    renderCalendar();
-                    renderTimeline();
+                    setTimeout(() => {
+                        openJobList();
+                        renderCalendar();
+                        renderTimeline();
+                    }, 10);
 
                 }
             }
